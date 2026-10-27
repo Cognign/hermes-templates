@@ -11,11 +11,14 @@ Every application created from this template follows strict security and data bo
 - **OIDC authentication (`AUTH-*`):** User identity is managed using OpenID Connect (OIDC).
 - **Host-only cookies (`SEC-*`):** Session cookies use the `__Host-` prefix (`Path=/`, `Secure`, `HttpOnly`, `SameSite=Lax`). This prevents cookie access across subdomains.
 - **Least privilege (`SEC-*`):** The app never receives platform credentials, deployment tokens, or keys belonging to other services.
-- **Fail closed (`SEC-*`):** In production mode, the application requires `DATABASE_URL` and refuses to start without it.
+- **Fail closed (`SEC-*`):** In production mode (`APP_ENV=production`, ignoring case and spaces), the application requires `DATABASE_URL` and refuses to start without it.
+- **Preview database:** Outside production, without `DATABASE_URL`, the app stores data in SQLite at `$DATA_DIR/app.db` (default `./.data/app.db`). The file is mode 0600. A `DATA_DIR` the app creates is mode 0700; one that already exists keeps its mode. Preview data does not carry over to the published app, which gets its own PostgreSQL database from Hermes. Publishing is refused on an install that has no app database server.
+- **Migrations:** They run at startup on SQLite and PostgreSQL, one process at a time (a PostgreSQL advisory lock, or a lock file next to the SQLite file). A copy that waits logs one line and gives up after 30 seconds. A database already migrated by a newer release is left as it is, so a rolled-back release keeps serving. A failure names the step and the error type, never the connection details. In a migration that changes an existing table, use `op.batch_alter_table` so it also runs on SQLite.
+- **Forms:** Send JSON with `fetch`. HTML form posts need `python-multipart`, which is not in the approved package set.
 
 ## Commands
 
-Run these commands from the `templates/fastapi-app/` directory:
+Run these commands from this directory:
 
 ### Install dependencies
 ```bash
@@ -51,4 +54,4 @@ uv run uvicorn app.main:app --reload
 ## Endpoints
 
 - `GET /healthz`: Liveness probe. Returns HTTP 200 `{"status": "ok"}` when the process is running.
-- `GET /readyz`: Readiness probe. Verifies database connectivity if `DATABASE_URL` is set. Returns HTTP 503 if `DATABASE_URL` is missing or if the database cannot be reached. Never fakes success.
+- `GET /readyz`: Readiness probe. Returns HTTP 200 when the database (PostgreSQL, or SQLite in preview) is reachable and every migration this code knows is applied, and HTTP 503 otherwise. A database already at a newer revision (from a newer release, after a rollback) is ready: the app starts without migrating it and logs one line saying so. Never fakes success.

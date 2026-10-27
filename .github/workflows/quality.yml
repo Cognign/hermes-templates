@@ -47,7 +47,44 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pyright
-      - run: uv run pytest
+      - name: Tests on SQLite
+        run: uv run pytest
+
+  fastapi-crud-postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: fastapi-crud
+    defaults:
+      run:
+        working-directory: fastapi-crud
+    env:
+      TEST_DATABASE_URL: postgresql://app:ci-only@127.0.0.1:5432/app
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        run: pip install uv==0.12.8
+      - run: uv sync --frozen
+      - name: Tests on PostgreSQL 17
+        run: uv run pytest
 
   nextjs-fullstack:
     runs-on: ubuntu-24.04

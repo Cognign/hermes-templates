@@ -2,12 +2,16 @@
 id: fastapi-crud
 version: 1.0.0
 summary: A FastAPI service with SQLAlchemy 2, Alembic migrations, health and readiness probes.
-use_when: The app is a Python JSON API that stores its own data in PostgreSQL (`DATABASE_URL` is optional outside production), with or without a separate frontend.
+use_when: The app is a Python JSON API that stores its own data in a database (SQLite in preview, PostgreSQL when published), with or without a separate frontend.
 ---
 
 # FastAPI starter
 
 FastAPI, SQLAlchemy 2 and Alembic. `GET /healthz` and `GET /readyz` already work. `README.md` explains the rules and commands.
+
+The database is ready to use. In preview the app stores data in a SQLite file at `$DATA_DIR/app.db`. That data does not carry over to the published app. When you publish, Hermes gives the app its own empty PostgreSQL database through `DATABASE_URL`, and publishing is refused on an install that has no app database server. The same migrations run on both, and the app applies them every time it starts. Write code that works on both: use SQLAlchemy models, not raw SQL, and do not rely on PostgreSQL-only types or functions.
+
+The page must send JSON with `fetch`. Do not post HTML forms: reading them needs `python-multipart`, which is not in the approved package set.
 
 ## Add one feature
 
@@ -19,7 +23,8 @@ FastAPI, SQLAlchemy 2 and Alembic. `GET /healthz` and `GET /readyz` already work
 
 ## Rules
 
-- `DATABASE_URL` is optional outside production and required with `APP_ENV=production`, where the app refuses to start without it. Read it from the environment only. Never commit it. Without it the app starts with no database and `/readyz` returns 503.
+- `DATABASE_URL` is optional outside production. Without it the app uses SQLite under `DATA_DIR` (default `./.data`). With `APP_ENV=production` it is required and the app refuses to start without it. Read it from the environment only. Never commit it.
+- In a migration that changes an existing table, use `op.batch_alter_table(...)` so it also runs on SQLite.
 - Add packages only to `pyproject.toml` and keep `uv.lock` in step (`uv lock`). The preview and build have no internet access, so packages outside the approved lock cannot be installed.
-- Keep the probe routes. `/readyz` must not report ready when the database is down.
+- Keep the probe routes. `/readyz` must not report ready when the database is down or not migrated.
 - Run `uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright` and `uv run pytest` before you call the work done.
