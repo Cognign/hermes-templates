@@ -1,7 +1,8 @@
 """Application settings loaded using pydantic-settings.
 
 Follows a fail-closed model:
-- DATABASE_URL is strictly required in production mode.
+- DATABASE_URL is strictly required in production mode. Outside production,
+  without it, the app stores data in a SQLite file under DATA_DIR.
 - Secrets can be read from env or *_FILE paths.
 - Secret values are never logged or exposed via string representations.
 """
@@ -11,7 +12,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 AppEnv = Literal["preview", "production", "development"]
@@ -30,6 +31,13 @@ class Settings(BaseSettings):
     app_env: AppEnv = "development"
     database_url: str | None = Field(default=None, repr=False)
     database_url_file: Path | None = Field(default=None, repr=False)
+    data_dir: Path = Path(".data")
+
+    @field_validator("app_env", mode="before")
+    @classmethod
+    def normalize_app_env(cls, value: object) -> object:
+        """Accept " Production " as production, so the fail-closed rule holds."""
+        return value.strip().lower() if isinstance(value, str) else value
 
     @model_validator(mode="before")
     @classmethod
@@ -88,9 +96,17 @@ class Settings(BaseSettings):
             raise ValueError("DATABASE_URL is required in production mode")
         return self
 
+    @property
+    def effective_database_url(self) -> str:
+        """DATABASE_URL, or the SQLite file in DATA_DIR when outside production."""
+        if self.database_url:
+            return self.database_url
+        self.data_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        return f"sqlite:///{(self.data_dir / 'app.db').resolve()}"
+
     def __repr__(self) -> str:
         """Never expose secret values in representations."""
-        db_state = "configured" if self.database_url else "not_configured"
+        db_state = "configured" if self.database_url else "sqlite"
         return f"Settings(app_env={self.app_env!r}, database_url={db_state})"
 
     def __str__(self) -> str:

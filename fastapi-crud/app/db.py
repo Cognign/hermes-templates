@@ -2,8 +2,13 @@
 
 from collections.abc import Generator
 from functools import lru_cache
+from pathlib import Path
 
-from sqlalchemy import Engine, create_engine, text
+from alembic import command
+from alembic.config import Config
+from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
+from sqlalchemy import Engine, create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.settings import get_settings
@@ -23,47 +28,57 @@ def normalize_database_url(url: str) -> str:
 
 
 @lru_cache
-def get_engine(database_url: str | None = None) -> Engine | None:
-    """Create and cache the SQLAlchemy engine.
+def _engine_for(url: str) -> Engine:
+    engine = create_engine(url, pool_pre_ping=True)
+    if engine.dialect.name == "sqlite":
 
-    Returns None if no database_url is provided and none is in settings.
-    """
-    if database_url is None:
-        settings = get_settings()
-        database_url = settings.database_url
+        @event.listens_for(engine, "connect")
+        def enable_foreign_keys(dbapi_connection: object, _record: object) -> None:
+            cursor = dbapi_connection.cursor()  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType, reportUnknownVariableType]
+            cursor.execute("PRAGMA foreign_keys=ON")  # pyright: ignore[reportUnknownMemberType]
+            cursor.close()  # pyright: ignore[reportUnknownMemberType]
 
-    if not database_url:
-        return None
-
-    normalized_url = normalize_database_url(database_url)
-    return create_engine(
-        normalized_url,
-        pool_pre_ping=True,
-    )
+    return engine
 
 
-def get_session_factory(engine: Engine | None = None) -> sessionmaker[Session] | None:
+def get_engine(database_url: str | None = None) -> Engine:
+    """Return the cached engine for DATABASE_URL, or for the SQLite preview file."""
+    url = database_url or get_settings().effective_database_url
+    return _engine_for(normalize_database_url(url))
+
+
+def alembic_config() -> Config:
+    """Alembic config that does not depend on the current working directory."""
+    root = Path(__file__).resolve().parent.parent
+    config = Config(str(root / "alembic.ini"))
+    config.set_main_option("script_location", str(root / "migrations"))
+    return config
+
+
+def run_migrations() -> None:
+    """Apply the committed migrations to the configured database."""
+    command.upgrade(alembic_config(), "head")
+
+
+def get_session_factory(engine: Engine | None = None) -> sessionmaker[Session]:
     """Return a sessionmaker bound to the given or cached engine."""
-    target_engine = engine or get_engine()
-    if target_engine is None:
-        return None
-    return sessionmaker(bind=target_engine, autoflush=False, autocommit=False)
+    return sessionmaker(bind=engine or get_engine(), autoflush=False, autocommit=False)
 
 
 def get_db_session() -> Generator[Session]:
     """Dependency for obtaining a scoped database session."""
-    factory = get_session_factory()
-    if factory is None:
-        raise RuntimeError("Database connection is not configured")
-    with factory() as session:
+    with get_session_factory()() as session:
         yield session
 
 
 def check_db_connection(engine: Engine) -> bool:
-    """Check database reachability by executing a lightweight SELECT 1 query."""
+    """Check the database is reachable and migrated to the latest revision."""
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        return True
+            current = MigrationContext.configure(conn).get_current_revision()
+        return (
+            current == ScriptDirectory.from_config(alembic_config()).get_current_head()
+        )
     except Exception:
         return False

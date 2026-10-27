@@ -14,7 +14,7 @@ Starter apps that the Hermes assistant copies into a new app and then extends.
 | Folder | Registry id | Use it for | Database |
 | --- | --- | --- | --- |
 | [`static-site/`](static-site) | `static-site@1.0.0` | A public page or small site, no server code | none |
-| [`fastapi-crud/`](fastapi-crud) | `fastapi-crud@1.0.0` | A Python JSON API with its own data | PostgreSQL (`DATABASE_URL`, optional; required in production) |
+| [`fastapi-crud/`](fastapi-crud) | `fastapi-crud@1.0.0` | A Python JSON API with its own data | SQLite in `$DATA_DIR` when `DATABASE_URL` is unset and `APP_ENV` is not `production`; PostgreSQL when it is set |
 | [`nextjs-fullstack/`](nextjs-fullstack) | `nextjs-fullstack@1.0.0` | A browser app with sign-in, server routes and saved data | PGlite when `DATABASE_URL` is unset and `APP_ENV` is not `production`; PostgreSQL when it is set |
 
 Every template folder holds:
@@ -32,7 +32,7 @@ Run these from the template's folder. CI (`.github/workflows/quality.yml`) runs 
 | --- | --- |
 | all | `scripts/check-template.sh <folder>` from the repository root |
 | `static-site` | none beyond the file check |
-| `fastapi-crud` | `uv sync --frozen`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright`, `uv run pytest` (uv 0.12.8, Python 3.13) |
+| `fastapi-crud` | `uv sync --frozen`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright`, `uv run pytest` (uv 0.12.8, Python 3.13). Tests run on SQLite. Set `TEST_DATABASE_URL` to a PostgreSQL 17 database to run the PostgreSQL test too. |
 | `nextjs-fullstack` | `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run test:integration` (Node 24.21.0). The integration suite runs on PGlite by default. Set `DATABASE_URL` to run it on PostgreSQL 17. |
 
 ## Adding a template

@@ -7,7 +7,7 @@ from fastapi import FastAPI, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from app.db import check_db_connection, get_engine
+from app.db import check_db_connection, get_engine, run_migrations
 from app.settings import get_settings
 
 
@@ -18,6 +18,13 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     except ValidationError:
         raise RuntimeError(
             "Invalid application settings (APP_ENV, DATABASE_URL, DATABASE_URL_FILE)"
+        ) from None
+    try:
+        run_migrations()
+    except Exception as error:
+        # The cause can carry connection details, so only its type is shown.
+        raise RuntimeError(
+            f"Database migration failed ({type(error).__name__})"
         ) from None
     yield
 
@@ -33,27 +40,12 @@ def healthz() -> dict[str, str]:
 
 @app.get("/readyz")
 def readyz() -> Response:
-    """Readiness probe: checks whether the application is ready to handle requests.
+    """Readiness probe: the database is reachable and migrated to the latest revision.
 
-    Only checks database connectivity if DATABASE_URL is configured.
-    Returns HTTP 503 if DATABASE_URL is unconfigured or unreachable.
-    Never fakes success.
+    Returns HTTP 503 otherwise. Never fakes success.
     """
-    settings = get_settings()
-
-    # Fail closed: never return success if the database is not configured
-    if not settings.database_url:
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "status": "not_ready",
-                "reason": "DATABASE_URL not configured",
-            },
-        )
-
     try:
-        engine = get_engine(settings.database_url)
-        if engine is None or not check_db_connection(engine):
+        if not check_db_connection(get_engine()):
             return JSONResponse(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 content={

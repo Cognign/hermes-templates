@@ -11,11 +11,12 @@ Every application created from this template follows strict security and data bo
 - **OIDC authentication (`AUTH-*`):** User identity is managed using OpenID Connect (OIDC).
 - **Host-only cookies (`SEC-*`):** Session cookies use the `__Host-` prefix (`Path=/`, `Secure`, `HttpOnly`, `SameSite=Lax`). This prevents cookie access across subdomains.
 - **Least privilege (`SEC-*`):** The app never receives platform credentials, deployment tokens, or keys belonging to other services.
-- **Fail closed (`SEC-*`):** In production mode, the application requires `DATABASE_URL` and refuses to start without it.
+- **Fail closed (`SEC-*`):** In production mode (`APP_ENV=production`, ignoring case and spaces), the application requires `DATABASE_URL` and refuses to start without it.
+- **Preview database:** Outside production, without `DATABASE_URL`, the app stores data in SQLite at `$DATA_DIR/app.db` (default `./.data/app.db`, folder mode 0700). Migrations run at startup on SQLite and PostgreSQL.
 
 ## Commands
 
-Run these commands from the `templates/fastapi-app/` directory:
+Run these commands from this directory:
 
 ### Install dependencies
 ```bash
@@ -51,4 +52,4 @@ uv run uvicorn app.main:app --reload
 ## Endpoints
 
 - `GET /healthz`: Liveness probe. Returns HTTP 200 `{"status": "ok"}` when the process is running.
-- `GET /readyz`: Readiness probe. Verifies database connectivity if `DATABASE_URL` is set. Returns HTTP 503 if `DATABASE_URL` is missing or if the database cannot be reached. Never fakes success.
+- `GET /readyz`: Readiness probe. Returns HTTP 200 when the database (PostgreSQL, or SQLite in preview) is reachable and migrated to the latest revision, and HTTP 503 otherwise. Never fakes success.

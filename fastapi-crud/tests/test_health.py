@@ -14,31 +14,12 @@ from app.main import app
 from app.settings import Settings, get_settings
 
 
-@pytest.fixture(autouse=True)
-def reset_settings(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Ensure clean environment and clear cached settings between tests."""
-    monkeypatch.delenv("DATABASE_URL", raising=False)
-    monkeypatch.delenv("DATABASE_URL_FILE", raising=False)
-    monkeypatch.delenv("APP_ENV", raising=False)
-    get_settings.cache_clear()
-
-
 def test_healthz_ok() -> None:
     """Liveness probe must return 200 with status ok."""
     client = TestClient(app)
     response = client.get("/healthz")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-
-
-def test_readyz_503_without_database_url() -> None:
-    """Readiness probe must return 503 if DATABASE_URL is not configured."""
-    client = TestClient(app)
-    response = client.get("/readyz")
-    assert response.status_code == 503
-    payload: dict[str, str] = response.json()
-    assert payload["status"] == "not_ready"
-    assert payload["reason"] == "DATABASE_URL not configured"
 
 
 def test_readyz_503_when_database_unreachable(
@@ -127,7 +108,7 @@ def test_settings_fail_closed_in_production_without_database_url() -> None:
 
 
 def test_settings_development_without_database_url() -> None:
-    """Development mode allows missing DATABASE_URL for local bootstrapping."""
+    """Development mode allows missing DATABASE_URL (SQLite is used instead)."""
     settings = Settings(app_env="development", database_url=None)
     assert settings.app_env == "development"
     assert settings.database_url is None
@@ -161,11 +142,11 @@ def test_settings_never_logs_secret_values() -> None:
 
 def test_alembic_baseline_revision_exists() -> None:
     """Alembic configuration must discover the 0001_baseline migration revision."""
-    from alembic.config import Config
     from alembic.script import ScriptDirectory
 
-    alembic_cfg = Config("alembic.ini")
-    script = ScriptDirectory.from_config(alembic_cfg)
+    from app.db import alembic_config
+
+    script = ScriptDirectory.from_config(alembic_config())
     revisions = list(script.walk_revisions())
     assert len(revisions) == 1
     assert revisions[0].revision == "0001_baseline"
