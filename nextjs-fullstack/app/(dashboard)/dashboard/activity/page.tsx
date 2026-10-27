@@ -34,7 +34,7 @@ export default async function ActivityPage() {
                     <span className="rounded-full bg-muted p-2 text-foreground"><Icon className="size-5" aria-hidden="true" /></span>
                     <div>
                       <p className="font-medium">{detail?.label || "Account activity"}</p>
-                      <time className="text-sm text-muted-foreground" dateTime={log.createdAt.toISOString()}>{log.createdAt.toLocaleString()}</time>
+                      <time className="text-muted-foreground" dateTime={log.createdAt.toISOString()}>{log.createdAt.toLocaleString()}</time>
                     </div>
                   </li>
                 );

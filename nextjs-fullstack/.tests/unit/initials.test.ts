@@ -21,3 +21,8 @@ test("leaves scripts without case as they are", () => {
 test("an email is one word", () => {
   assert.equal(initials("alex@example.com"), "A");
 });
+
+test("skips punctuation at the start of a word", () => {
+  assert.equal(initials("李小龍 (Bruce Lee)"), "李B");
+  assert.equal(initials("\"Quoted\" name"), "QN");
+});

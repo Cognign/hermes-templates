@@ -31,6 +31,9 @@ export default function RootLayout({
     <html lang="en" className={`style-vega ${inter.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <noscript>
+          <style>{`.js-only{display:none!important}`}</style>
+        </noscript>
       </head>
       <body className="min-h-dvh">
         {children}

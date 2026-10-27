@@ -103,16 +103,19 @@
 /*
  * The shadow scale, derived from the six base variables above in the way
  * tweakcn's utils/shadows.ts does it (https://github.com/jnsahaj/tweakcn,
- * Apache-2.0): a first layer from the base variables, and for sm to xl a
- * second layer with a fixed offset, blur and a spread one pixel smaller.
+ * commit a3b47b3, Apache-2.0, see LICENSE-APACHE-2.0): a first layer from the
+ * base variables, and for sm to xl a second layer with a fixed offset, blur and
+ * a spread one pixel smaller. Changed from the original: rewritten from
+ * TypeScript into CSS custom properties, and the colour's own alpha is replaced
+ * by the opacity, as tweakcn does, using relative colour syntax.
  * It sits apart from the theme blocks so a theme that replaces those blocks
  * keeps the derivation.
  */
 :root,
 .dark {
-  --shadow-ink: color-mix(in srgb, var(--shadow-color) calc(var(--shadow-opacity) * 100%), transparent);
-  --shadow-ink-soft: color-mix(in srgb, var(--shadow-color) calc(var(--shadow-opacity) * 50%), transparent);
-  --shadow-ink-strong: color-mix(in srgb, var(--shadow-color) min(100%, calc(var(--shadow-opacity) * 250%)), transparent);
+  --shadow-ink: rgb(from var(--shadow-color) r g b / var(--shadow-opacity));
+  --shadow-ink-soft: rgb(from var(--shadow-color) r g b / calc(var(--shadow-opacity) * 0.5));
+  --shadow-ink-strong: rgb(from var(--shadow-color) r g b / min(1, calc(var(--shadow-opacity) * 2.5)));
   --shadow-layer: var(--shadow-offset-x) var(--shadow-offset-y) var(--shadow-blur) var(--shadow-spread);
   --shadow-spread-2: calc(var(--shadow-spread) - 1px);
 
@@ -207,9 +210,10 @@
 
 /*
  * Outline buttons draw their edge with --input, which is built to reach 3:1
- * against the page in both modes. The Vega file uses --border in light mode,
+ * against the page in both modes. The style files use --border in light mode,
  * which is a soft divider colour (about 1.3:1) and is too faint for a control.
+ * The selector matches every style class so a style swap keeps the fix.
  */
-.style-vega .cn-button-variant-outline {
+html[class*="style-"] .cn-button-variant-outline {
   border-color: var(--input);
 }

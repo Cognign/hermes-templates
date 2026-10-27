@@ -74,9 +74,10 @@ export function safeMessage(value: string | null) {
 
 /** The form fields named in `?fields=`, limited to the ones the page really has. */
 export function invalidFields<const Name extends string>(
-  value: string | null | undefined,
+  value: unknown,
   allowed: readonly Name[],
 ): ReadonlySet<Name> {
-  const named = new Set((value || "").split(",").slice(0, 10));
+  // A repeated `?fields=` arrives as an array; only one plain value is honoured.
+  const named = new Set((typeof value === "string" ? value : "").split(",").slice(0, 10));
   return new Set(allowed.filter((name) => named.has(name)));
 }

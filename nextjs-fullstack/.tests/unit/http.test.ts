@@ -113,6 +113,7 @@ test("builds application-relative form redirects", () => {
 test("keeps only known field names from the fields parameter", () => {
   assert.deepEqual([...invalidFields("email,bogus,password", ["email", "password", "name"])], ["email", "password"]);
   assert.deepEqual([...invalidFields(undefined, ["email"])], []);
+  assert.deepEqual([...invalidFields(["email", "password"], ["email", "password"])], []);
 });
 
 test("bounds messages rendered from query parameters", () => {

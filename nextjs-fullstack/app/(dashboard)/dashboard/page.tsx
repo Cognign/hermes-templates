@@ -55,7 +55,7 @@ export default async function TeamPage({
                         </Avatar>
                         <div className="min-w-0">
                           <p className="font-medium wrap-anywhere">{label}</p>
-                          {member.name ? <p className="text-sm text-muted-foreground wrap-anywhere">{member.email}</p> : null}
+                          {member.name ? <p className="text-muted-foreground wrap-anywhere">{member.email}</p> : null}
                           <Badge variant="secondary" className="mt-1 sm:hidden">{member.role}</Badge>
                         </div>
                       </div>

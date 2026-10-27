@@ -16,9 +16,18 @@ import { Button } from "@/components/ui/button";
 /** "Remove" for one team member. The member is only removed after the owner confirms. */
 export function RemoveMemberDialog({ memberLabel, action }: { memberLabel: string; action: string }) {
   return (
+    <>
+    {/* Without JavaScript the dialog cannot open, so a plain form removes the member directly. */}
+    <noscript>
+      <form method="post" action={action}>
+        <Button type="submit" variant="outline" size="sm" aria-label={`Remove ${memberLabel}`}>
+          Remove
+        </Button>
+      </form>
+    </noscript>
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button type="button" variant="outline" size="sm" aria-label={`Remove ${memberLabel}`}>
+        <Button type="button" variant="outline" size="sm" className="js-only" aria-label={`Remove ${memberLabel}`}>
           Remove
         </Button>
       </AlertDialogTrigger>
@@ -42,5 +51,6 @@ export function RemoveMemberDialog({ memberLabel, action }: { memberLabel: strin
         </form>
       </AlertDialogContent>
     </AlertDialog>
+    </>
   );
 }
