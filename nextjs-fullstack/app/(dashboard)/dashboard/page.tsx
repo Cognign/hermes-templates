@@ -38,7 +38,7 @@ export default async function TeamPage({
             <TableHeader>
               <TableRow>
                 <TableHead>Member</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead className="hidden sm:table-cell">Role</TableHead>
                 {isOwner ? <TableHead className="text-right"><span className="sr-only">Actions</span></TableHead> : null}
               </TableRow>
             </TableHeader>
@@ -53,12 +53,13 @@ export default async function TeamPage({
                           <AvatarFallback>{label.slice(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="max-w-[16rem] truncate font-medium">{label}</p>
-                          <p className="max-w-[16rem] truncate text-sm text-muted-foreground">{member.email}</p>
+                          <p className="max-w-[10rem] truncate font-medium sm:max-w-[16rem]">{label}</p>
+                          <p className="max-w-[10rem] truncate text-sm text-muted-foreground sm:max-w-[16rem]">{member.email}</p>
+                          <Badge variant="secondary" className="mt-1 sm:hidden">{member.role}</Badge>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <Badge variant="secondary">{member.role}</Badge>
                     </TableCell>
                     {isOwner ? (
