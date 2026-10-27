@@ -7,24 +7,31 @@ from fastapi import FastAPI, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from app.db import check_db_connection, get_engine, run_migrations
-from app.settings import get_settings
+from app.db import MigrationError, check_db_connection, get_engine, run_migrations
+from app.settings import PRODUCTION_NEEDS_DATABASE_URL, get_settings
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     try:
         get_settings()
-    except ValidationError:
+    except ValidationError as error:
+        # Only our own sentence is repeated; other causes can carry secret paths.
+        if any(PRODUCTION_NEEDS_DATABASE_URL in e["msg"] for e in error.errors()):
+            raise RuntimeError(
+                f"Invalid application settings: {PRODUCTION_NEEDS_DATABASE_URL}"
+            ) from None
         raise RuntimeError(
             "Invalid application settings (APP_ENV, DATABASE_URL, DATABASE_URL_FILE)"
         ) from None
     try:
         run_migrations()
+    except MigrationError:
+        raise
     except Exception as error:
-        # The cause can carry connection details, so only its type is shown.
+        # Settings or engine setup failed; the cause can carry connection details.
         raise RuntimeError(
-            f"Database migration failed ({type(error).__name__})"
+            f"Database migration failed while preparing ({type(error).__name__})"
         ) from None
     yield
 

@@ -14,8 +14,12 @@ from typing import Literal, Self
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy import URL
 
 AppEnv = Literal["preview", "production", "development"]
+
+# app/main.py looks for this exact text to tell the user the real reason.
+PRODUCTION_NEEDS_DATABASE_URL = "DATABASE_URL is required when APP_ENV is production"
 
 
 class Settings(BaseSettings):
@@ -93,16 +97,24 @@ class Settings(BaseSettings):
             ).strip()
 
         if self.app_env == "production" and not self.database_url:
-            raise ValueError("DATABASE_URL is required in production mode")
+            raise ValueError(PRODUCTION_NEEDS_DATABASE_URL)
         return self
 
     @property
-    def effective_database_url(self) -> str:
-        """DATABASE_URL, or the SQLite file in DATA_DIR when outside production."""
+    def effective_database_url(self) -> str | URL:
+        """DATABASE_URL, or the SQLite file in DATA_DIR when outside production.
+
+        The SQLite URL is built as an object, not a string, so a path with
+        `?`, `#`, `%` or spaces stays a path. A DATA_DIR that already exists
+        keeps its mode; the database file is always 0600.
+        """
         if self.database_url:
             return self.database_url
         self.data_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-        return f"sqlite:///{(self.data_dir / 'app.db').resolve()}"
+        path = (self.data_dir / "app.db").resolve()
+        os.close(os.open(path, os.O_CREAT | os.O_RDWR, 0o600))
+        path.chmod(0o600)
+        return URL.create("sqlite", database=str(path))
 
     def __repr__(self) -> str:
         """Never expose secret values in representations."""

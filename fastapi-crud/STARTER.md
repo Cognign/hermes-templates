@@ -9,7 +9,9 @@ use_when: The app is a Python JSON API that stores its own data in a database (S
 
 FastAPI, SQLAlchemy 2 and Alembic. `GET /healthz` and `GET /readyz` already work. `README.md` explains the rules and commands.
 
-The database is ready to use. In preview the app stores data in a SQLite file at `$DATA_DIR/app.db`. When the app is published, Hermes gives it a PostgreSQL database through `DATABASE_URL`. The same migrations run on both, and the app applies them every time it starts. Write code that works on both: use SQLAlchemy models, not raw SQL, and do not rely on PostgreSQL-only types or functions.
+The database is ready to use. In preview the app stores data in a SQLite file at `$DATA_DIR/app.db`. That data does not carry over to the published app. When you publish, Hermes gives the app its own empty PostgreSQL database through `DATABASE_URL`, and publishing is refused on an install that has no app database server. The same migrations run on both, and the app applies them every time it starts. Write code that works on both: use SQLAlchemy models, not raw SQL, and do not rely on PostgreSQL-only types or functions.
+
+The page must send JSON with `fetch`. Do not post HTML forms: reading them needs `python-multipart`, which is not in the approved package set.
 
 ## Add one feature
 

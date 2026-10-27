@@ -58,7 +58,10 @@ def test_startup_rejects_production_without_database_url(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("APP_ENV", "production")
-    with pytest.raises(RuntimeError, match="Invalid application settings"):
+    with pytest.raises(
+        RuntimeError,
+        match="Invalid application settings: DATABASE_URL is required when APP_ENV",
+    ):
         with TestClient(app):
             pytest.fail("Production startup accepted missing DATABASE_URL")
 
@@ -104,7 +107,7 @@ def test_settings_fail_closed_in_production_without_database_url() -> None:
     """Production mode must strictly require DATABASE_URL (fail closed)."""
     with pytest.raises(ValidationError) as exc_info:
         Settings(app_env="production", database_url=None)
-    assert "DATABASE_URL is required in production mode" in str(exc_info.value)
+    assert "DATABASE_URL is required when APP_ENV is production" in str(exc_info.value)
 
 
 def test_settings_development_without_database_url() -> None:
