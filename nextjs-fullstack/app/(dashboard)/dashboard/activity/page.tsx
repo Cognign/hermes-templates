@@ -21,6 +21,7 @@ export default async function ActivityPage() {
   return (
     <section className="p-4 sm:p-6 lg:p-8">
       <h1 className="text-2xl font-semibold">Activity</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Shows the latest 20 events.</p>
       {logs.length ? (
         <Card className="mt-6 max-w-3xl">
           <CardContent>

@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   FormRequestError,
   formRedirectLocation,
+  invalidFields,
   isFormContentType,
   isSameOrigin,
   readFormRequest,
@@ -97,11 +98,21 @@ test("builds application-relative form redirects", () => {
     formRedirectLocation("/sign-in", { error: "Sign in again" }),
     "/sign-in?error=Sign+in+again",
   );
+  assert.equal(
+    formRedirectLocation("/sign-in", { error: "Bad", fields: ["email", "password"] }),
+    "/sign-in?error=Bad&fields=email%2Cpassword",
+  );
+  assert.equal(formRedirectLocation("/dashboard", { success: "Done", fields: ["name"] }), "/dashboard?success=Done");
   assert.throws(
     () => formRedirectLocation("https://evil.example"),
     /application-relative/,
   );
   assert.throws(() => formRedirectLocation("//evil.example"), /application-relative/);
+});
+
+test("keeps only known field names from the fields parameter", () => {
+  assert.deepEqual([...invalidFields("email,bogus,password", ["email", "password", "name"])], ["email", "password"]);
+  assert.deepEqual([...invalidFields(undefined, ["email"])], []);
 });
 
 test("bounds messages rendered from query parameters", () => {

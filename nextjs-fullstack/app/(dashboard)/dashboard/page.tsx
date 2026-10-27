@@ -2,8 +2,9 @@ import { requirePageUser, teamForUser } from "@/lib/server/auth";
 import { safeMessage } from "@/lib/http";
 import { FormMessage } from "@/components/form-message";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { RemoveMemberDialog } from "@/components/remove-member-dialog";
+import { initials } from "@/lib/initials";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -23,7 +24,7 @@ export default async function TeamPage({
     <section className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
       <div className="min-w-0">
         <p className="text-sm font-medium text-muted-foreground">Team</p>
-        <h1 className="mt-1 text-2xl font-semibold break-words">{team.name}</h1>
+        <h1 className="mt-1 text-2xl font-semibold wrap-anywhere">{team.name}</h1>
       </div>
       <Card>
         <CardHeader>
@@ -47,14 +48,14 @@ export default async function TeamPage({
                 const label = member.name || member.email;
                 return (
                   <TableRow key={member.membershipId}>
-                    <TableCell>
+                    <TableCell className="whitespace-normal!">
                       <div className="flex min-w-0 items-center gap-3">
                         <Avatar>
-                          <AvatarFallback>{label.slice(0, 2).toUpperCase()}</AvatarFallback>
+                          <AvatarFallback>{initials(label)}</AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="max-w-[10rem] truncate font-medium sm:max-w-[16rem]">{label}</p>
-                          <p className="max-w-[10rem] truncate text-sm text-muted-foreground sm:max-w-[16rem]">{member.email}</p>
+                          <p className="font-medium wrap-anywhere">{label}</p>
+                          {member.name ? <p className="text-sm text-muted-foreground wrap-anywhere">{member.email}</p> : null}
                           <Badge variant="secondary" className="mt-1 sm:hidden">{member.role}</Badge>
                         </div>
                       </div>
@@ -65,9 +66,7 @@ export default async function TeamPage({
                     {isOwner ? (
                       <TableCell className="text-right">
                         {member.membershipId !== context.membership.id ? (
-                          <form method="post" action={`/api/team/members/${member.membershipId}`}>
-                            <Button type="submit" variant="outline" size="sm">Remove</Button>
-                          </form>
+                          <RemoveMemberDialog memberLabel={label} action={`/api/team/members/${member.membershipId}`} />
                         ) : null}
                       </TableCell>
                     ) : null}

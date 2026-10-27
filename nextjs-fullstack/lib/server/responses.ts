@@ -22,7 +22,7 @@ export async function parseFormRequest(request: NextRequest) {
 
 export function formRedirect(
   pathname: string,
-  message?: { error?: string; success?: string },
+  message?: { error?: string; success?: string; fields?: readonly string[] },
 ) {
   return new NextResponse(null, {
     status: 303,

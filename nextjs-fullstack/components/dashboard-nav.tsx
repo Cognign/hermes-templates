@@ -17,7 +17,7 @@ export function DashboardNav() {
   return (
     <nav
       aria-label="Dashboard"
-      className="flex gap-1 overflow-x-auto border-b bg-card p-2 lg:min-h-[calc(100dvh-57px)] lg:flex-col lg:border-r lg:border-b-0 lg:p-3"
+      className="flex gap-1 overflow-x-auto border-b bg-card p-2 lg:flex-col lg:border-r lg:border-b-0 lg:p-3"
     >
       {navigation.map(({ href, label, icon: Icon }) => {
         const active = pathname === href;

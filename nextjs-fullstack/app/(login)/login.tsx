@@ -5,15 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { fieldErrorProps } from "@/lib/form-errors";
+import { invalidFields } from "@/lib/http";
 
 export function Login({
   mode,
   error,
+  fields,
 }: {
   mode: "signin" | "signup";
   error?: string;
+  fields?: string;
 }) {
   const signingIn = mode === "signin";
+  const invalid = error ? invalidFields(fields, ["email", "password"]) : new Set<string>();
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-12">
       <div className="flex w-full max-w-md flex-col items-center gap-6">
@@ -31,7 +36,7 @@ export function Login({
               <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="email">Email</FieldLabel>
-                  <Input id="email" name="email" type="email" autoComplete="email" required maxLength={255} />
+                  <Input id="email" name="email" type="email" autoComplete="email" required maxLength={255} {...fieldErrorProps(invalid, "email")} />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="password">Password</FieldLabel>
@@ -43,6 +48,7 @@ export function Login({
                     required
                     minLength={8}
                     maxLength={100}
+                    {...fieldErrorProps(invalid, "password")}
                   />
                 </Field>
                 <FormMessage error={error} />

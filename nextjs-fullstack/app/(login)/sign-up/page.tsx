@@ -4,8 +4,8 @@ import { safeMessage } from "@/lib/http";
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; fields?: string }>;
 }) {
-  const { error } = await searchParams;
-  return <Login mode="signup" error={safeMessage(error || null)} />;
+  const { error, fields } = await searchParams;
+  return <Login mode="signup" error={safeMessage(error || null)} fields={fields} />;
 }

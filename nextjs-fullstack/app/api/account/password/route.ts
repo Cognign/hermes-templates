@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success)
     return formRedirect("/dashboard/security", {
       error: parsed.error.issues[0]?.message || "Invalid password details",
+      fields: parsed.error.issues.slice(0, 1).map((issue) => String(issue.path[0])),
     });
 
   const [stored] = await db()
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
   )
     return formRedirect("/dashboard/security", {
       error: "Current password is incorrect",
+      fields: ["currentPassword"],
     });
 
   const passwordHash = await hashPassword(parsed.data.newPassword);
