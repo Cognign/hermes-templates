@@ -19,7 +19,7 @@ FastAPI, SQLAlchemy 2 and Alembic. `GET /healthz` and `GET /readyz` already work
 
 ## Rules
 
-- `DATABASE_URL` is optional outside production and required with `APP_ENV=production`, where the app refuses to start without it. Read it from the environment only. Never commit it. Without it the app starts with no database and `/readyz` returns 503. Hermes's template registry describes a SQLite fallback; this starter does not include one.
+- `DATABASE_URL` is optional outside production and required with `APP_ENV=production`, where the app refuses to start without it. Read it from the environment only. Never commit it. Without it the app starts with no database and `/readyz` returns 503.
 - Add packages only to `pyproject.toml` and keep `uv.lock` in step (`uv lock`). The preview and build have no internet access, so packages outside the approved lock cannot be installed.
 - Keep the probe routes. `/readyz` must not report ready when the database is down.
 - Run `uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright` and `uv run pytest` before you call the work done.
