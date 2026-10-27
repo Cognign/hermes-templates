@@ -1,0 +1,39 @@
+[project]
+name = "fastapi-app"
+version = "0.1.0"
+description = "Hermes FastAPI application template"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "fastapi==0.141.1",
+    "uvicorn==0.54.0",
+    "sqlalchemy==2.1.1",
+    "alembic==1.20.0",
+    "psycopg[binary]==3.3.6",
+    "pydantic-settings==2.15.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff==0.16.9",
+    "pyright==1.1.414",
+    "pytest==9.1.1",
+    "httpx==0.28.1",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pyright]
+pythonVersion = "3.13"
+include = ["app", "tests"]
+extraPaths = ["."]
+strict = ["app"]
