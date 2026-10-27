@@ -23,3 +23,7 @@ test("removes the database URL and its password", () => {
 test("prints a thrown value that is not an Error", () => {
   assert.equal(failureText("EACCES: permission denied", {}), "EACCES: permission denied");
 });
+
+test("does not throw for a thrown value with no prototype", () => {
+  assert.equal(failureText(Object.create(null), {}), "Unknown error");
+});

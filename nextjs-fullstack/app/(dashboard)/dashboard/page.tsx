@@ -1,5 +1,11 @@
 import { requirePageUser, teamForUser } from "@/lib/server/auth";
 import { safeMessage } from "@/lib/http";
+import { FormMessage } from "@/components/form-message";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default async function TeamPage({
   searchParams,
@@ -11,38 +17,66 @@ export default async function TeamPage({
   const messages = await searchParams;
   const error = safeMessage(messages.error || null);
   const success = safeMessage(messages.success || null);
+  const isOwner = context.membership.role === "owner";
 
   return (
-    <section className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <p className="text-sm font-medium text-orange-700">Team</p>
-        <h1 className="mt-1 text-2xl font-semibold text-gray-950">{team.name}</h1>
+    <section className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-muted-foreground">Team</p>
+        <h1 className="mt-1 text-2xl font-semibold break-words">{team.name}</h1>
       </div>
-      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 px-5 py-4">
-          <h2 className="font-semibold text-gray-950">Members</h2>
-          <p className="mt-1 text-sm text-gray-600">Only team owners can remove another member.</p>
-        </div>
-        {error ? <p className="mx-5 mt-4 text-sm text-red-700" role="alert">{error}</p> : null}
-        {success ? <p className="mx-5 mt-4 text-sm text-green-700">{success}</p> : null}
-        <ul className="divide-y divide-gray-100">
-          {team.members.map((member) => (
-            <li key={member.membershipId} className="flex items-center justify-between gap-4 px-5 py-4">
-              <div className="min-w-0">
-                <p className="truncate font-medium text-gray-950">{member.name || member.email}</p>
-                <p className="truncate text-sm text-gray-600">{member.email} · {member.role}</p>
-              </div>
-              {context.membership.role === "owner" && member.membershipId !== context.membership.id ? (
-                <form method="post" action={`/api/team/members/${member.membershipId}`}>
-                  <button type="submit" className="rounded-full border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-100">
-                    Remove
-                  </button>
-                </form>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h2 className="text-base font-semibold">Members</h2>
+          </CardTitle>
+          <CardDescription>Only team owners can remove another member.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <FormMessage error={error} success={success} />
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Member</TableHead>
+                <TableHead>Role</TableHead>
+                {isOwner ? <TableHead className="text-right"><span className="sr-only">Actions</span></TableHead> : null}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {team.members.map((member) => {
+                const label = member.name || member.email;
+                return (
+                  <TableRow key={member.membershipId}>
+                    <TableCell>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Avatar>
+                          <AvatarFallback>{label.slice(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="max-w-[16rem] truncate font-medium">{label}</p>
+                          <p className="max-w-[16rem] truncate text-sm text-muted-foreground">{member.email}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{member.role}</Badge>
+                    </TableCell>
+                    {isOwner ? (
+                      <TableCell className="text-right">
+                        {member.membershipId !== context.membership.id ? (
+                          <form method="post" action={`/api/team/members/${member.membershipId}`}>
+                            <Button type="submit" variant="outline" size="sm">Remove</Button>
+                          </form>
+                        ) : null}
+                      </TableCell>
+                    ) : null}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </section>
   );
 }

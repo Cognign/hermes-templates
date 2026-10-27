@@ -19,12 +19,19 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+// Runs before first paint so the page never flashes the wrong colour scheme.
+// It follows the system setting, including a change while the page is open.
+const themeScript = `(function(){var m=matchMedia("(prefers-color-scheme: dark)");function a(){document.documentElement.classList.toggle("dark",m.matches)}a();m.addEventListener("change",a)})()`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="min-h-dvh bg-gray-50 text-gray-950">{children}</body>
+    <html lang="en" className={`style-vega ${inter.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-dvh">{children}</body>
     </html>
   );
 }
