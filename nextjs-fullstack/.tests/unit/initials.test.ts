@@ -26,3 +26,8 @@ test("skips punctuation at the start of a word", () => {
   assert.equal(initials("李小龍 (Bruce Lee)"), "李B");
   assert.equal(initials("\"Quoted\" name"), "QN");
 });
+
+test("keeps flag emoji", () => {
+  assert.equal(initials("🇺🇸 Smith"), "🇺🇸S");
+  assert.equal(initials("🇬🇧"), "🇬🇧");
+});

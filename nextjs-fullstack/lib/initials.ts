@@ -1,11 +1,11 @@
 const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
 /**
- * Avatar text: the first letter, number or emoji of the first two words that have one (punctuation such as "(" is skipped), uppercase where the
+ * Avatar text: the first letter, number, emoji or flag of the first two words that have one (punctuation such as "(" is skipped), uppercase where the
  * script has case. Splits on graphemes so an emoji or an accented letter is
  * never cut in half.
  */
-const lead = /^[\p{L}\p{N}\p{Extended_Pictographic}]/u;
+const lead = /^[\p{L}\p{N}\p{Extended_Pictographic}\p{Regional_Indicator}]/u;
 
 export function initials(label: string): string {
   return label
