@@ -14,7 +14,7 @@ Use this starter for a browser application that needs a TypeScript frontend, ser
 - Next.js App Router and React.
 - Email/password signup, signin, signout, and signed HTTP-only sessions. Sessions also work when the app is shown in an iframe on another site.
 - A protected dashboard with team membership, profile, password, and activity views.
-- Drizzle schema and committed additive migrations. The database is an embedded PGlite database when `DATABASE_URL` is not set, and PostgreSQL when it is set. The same migrations run on both.
+- Drizzle schema and committed additive migrations. The database is an embedded PGlite database when `DATABASE_URL` is unset and `APP_ENV` is not `production`, and PostgreSQL when `DATABASE_URL` is set. With `APP_ENV=production` and no `DATABASE_URL` the app refuses to start. The same migrations run on both.
 - A session signing key that the app creates on first start and keeps in the `app_settings` table. There is nothing to configure.
 - A startup migration runner guarded by a bounded PostgreSQL advisory lock.
 - Unit tests and an HTTP integration suite that runs on PGlite and on PostgreSQL.
@@ -42,7 +42,7 @@ npm ci
 npm run dev
 ```
 
-`npm run dev` applies migrations first, then starts Next.js on <http://localhost:3000>. Data is stored in `./.data/pglite` (or `$DATA_DIR/pglite`). Delete that folder to start fresh.
+`npm run dev` applies migrations first, then starts Next.js on <http://localhost:3000>. Data is stored in `./.data/pglite` (or `$DATA_DIR/pglite`). The folder is created on first start. Delete it to start fresh.
 
 To use PostgreSQL, set `DATABASE_URL` (see `.env.example`).
 
@@ -50,12 +50,29 @@ To use PostgreSQL, set `DATABASE_URL` (see `.env.example`).
 
 | Name | Meaning |
 | --- | --- |
-| `DATABASE_URL` | PostgreSQL URL. When unset, the app uses PGlite. |
+| `DATABASE_URL` | PostgreSQL URL. When unset and `APP_ENV` is not `production`, the app uses PGlite. |
 | `APP_ENV` | `production` makes `DATABASE_URL` required. The app refuses to start without it. |
-| `DATA_DIR` | Writable folder for PGlite. Default `./.data`. |
+| `DATA_DIR` | Writable folder for PGlite. Default `./.data`. It and its parents are created when missing. |
+| `PORT` | Port of the release server (`npm start`). Default `8080`. It listens on `0.0.0.0`. `npm run dev` uses Next's default, 3000. |
 | `SESSION_COOKIE_SECURE` | Set to `false` only for plain HTTP on a host that is not `localhost` or `*.localhost`. Cookies then use `SameSite=Lax` and do not work inside an iframe. |
 
 Hermes sets `APP_ENV`, `DATA_DIR` and `DATABASE_URL` for you. Do not define variables that start with `HERMES_` or are named `APP_ENV`, `PORT`, `HOME`, `PATH` or `DATA_DIR`.
+
+## Release form
+
+```sh
+npm ci
+npm run build
+npm start
+```
+
+`npm run build` leaves a complete release folder in `.next/standalone`. It holds the server, the static files, the migrations and `start.mjs`. Copy that one folder anywhere and run it with Node 24 and no other files:
+
+```sh
+cd standalone && node start.mjs
+```
+
+`start.mjs` refuses to run with `APP_ENV=production` and no `DATABASE_URL` (exit code 1). Otherwise it applies migrations and creates the session key under the migration lock, then starts the server on `$PORT` (default 8080). `npm start` runs the same file from `.next/standalone`.
 
 ## Checks
 
@@ -81,8 +98,8 @@ npm run test:integration
 - Scope database writes to the signed-in user and their team. Never trust a browser-supplied user or team ID.
 - Add a new numbered SQL migration for every schema change. Do not edit a migration already used by another environment. Write SQL that runs on both PGlite and PostgreSQL (plain DDL and `insert` are fine; avoid extensions).
 - Keep `GET /api/healthz` as process liveness only. It does not prove database readiness.
-- Configure rate limits for signup and signin at the trusted edge before public launch.
+- Sign-in and sign-up have no rate limit in the app. Add one at the trusted edge before public launch.
 - Keep embedding support. Do not add `X-Frame-Options: DENY` or a `frame-ancestors` rule that blocks the Hermes preview.
 - Do not load fonts or images from other sites. Fonts come from `@fontsource-variable/inter` through `next/font/local`.
 
-`npm start` applies migrations and creates the session key before it starts the server, so its database identity needs schema-write rights. Rotating the session key is not supported.
+`start.mjs` applies migrations and creates the session key before it starts the server, so its database identity needs schema-write rights. Rotating the session key is not supported.

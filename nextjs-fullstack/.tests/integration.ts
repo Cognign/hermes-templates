@@ -12,7 +12,7 @@ import { Cookie, CookieJar } from "tough-cookie";
 import { hashPassword } from "../lib/auth/password";
 import { createSessionToken } from "../lib/auth/session-core";
 import { decodeSessionKey } from "../lib/auth/session-key";
-import { MIGRATION_LOCK_ID, runMigrations } from "../scripts/migrate";
+import { MIGRATION_LOCK_ID, runMigrations } from "../lib/db/migrate";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // With DATABASE_URL the suite runs on PostgreSQL. Without it, the app uses PGlite
@@ -100,21 +100,15 @@ async function startApp(options: {
   };
   if (options.secureCookie === undefined) delete env.SESSION_COOKIE_SECURE;
   else env.SESSION_COOKIE_SECURE = String(options.secureCookie);
-  const child = spawn(
-    process.execPath,
-    [
-      "--env-file-if-exists=.env.local",
-      "--import",
-      "tsx",
-      "scripts/start.ts",
-      ...(options.migrate ? [] : ["--skip-migrations"]),
-    ],
-    {
-      cwd: root,
-      env,
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
+  // The built release folder is the thing that ships, so it is the thing under test.
+  // Without migrate it runs server.js alone, to see the app with a database that is down.
+  const entry = options.migrate ? "start.mjs" : "server.js";
+  if (!options.migrate) env.HOSTNAME = "127.0.0.1";
+  const child = spawn(process.execPath, [`.next/standalone/${entry}`], {
+    cwd: root,
+    env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
   let logs = "";
   const append = (chunk: Buffer) => {
     logs = (logs + chunk.toString()).slice(-20_000);
@@ -259,7 +253,14 @@ async function migratedKey() {
 
 async function verifyMissingConfiguration() {
   const env = { ...process.env, APP_ENV: "production", DATABASE_URL: "", DATA_DIR: dataDir };
-  const result = await runNpm(["run", "start:app"], env);
+  const result = await new Promise<{ code: number | null; output: string }>((resolve, reject) => {
+    const child = spawn(process.execPath, [".next/standalone/start.mjs"], { cwd: root, env });
+    let output = "";
+    child.stdout.on("data", (chunk: Buffer) => (output += chunk.toString()));
+    child.stderr.on("data", (chunk: Buffer) => (output += chunk.toString()));
+    child.once("error", reject);
+    child.once("exit", (code) => resolve({ code, output: redact(output) }));
+  });
   assert.equal(result.code, 1);
   assert.match(result.output, /DATABASE_URL is required when APP_ENV=production/);
   assert.doesNotMatch(result.output, /server-only/);
@@ -267,7 +268,7 @@ async function verifyMissingConfiguration() {
 }
 
 async function verifySecureCookieDefault() {
-  const app = await startApp({ migrate: false });
+  const app = await startApp({ migrate: true });
   try {
     const browser = new Browser(app.baseUrl);
     const response = await browser.form("/api/auth/sign-up", {

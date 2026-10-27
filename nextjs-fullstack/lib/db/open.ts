@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
 import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
@@ -14,6 +15,8 @@ export function openDatabase(config: DatabaseConfig): {
   close: () => Promise<void>;
 } {
   if (config.kind === "pglite") {
+    // PGlite creates the folder but not its parents, and a fresh clone has none.
+    mkdirSync(config.dir, { recursive: true });
     const client = new PGlite(config.dir);
     return {
       db: drizzlePglite({ client, schema }),

@@ -14,8 +14,8 @@ Starter apps that the Hermes assistant copies into a new app and then extends.
 | Folder | Registry id | Use it for | Database |
 | --- | --- | --- | --- |
 | [`static-site/`](static-site) | `static-site@1.0.0` | A public page or small site, no server code | none |
-| [`fastapi-crud/`](fastapi-crud) | `fastapi-crud@1.0.0` | A Python JSON API with its own data | PostgreSQL (`DATABASE_URL`) |
-| [`nextjs-fullstack/`](nextjs-fullstack) | `nextjs-fullstack@1.0.0` | A browser app with sign-in, server routes and saved data | PGlite with no setup, PostgreSQL when `DATABASE_URL` is set |
+| [`fastapi-crud/`](fastapi-crud) | `fastapi-crud@1.0.0` | A Python JSON API with its own data | PostgreSQL (`DATABASE_URL`, optional; required in production) |
+| [`nextjs-fullstack/`](nextjs-fullstack) | `nextjs-fullstack@1.0.0` | A browser app with sign-in, server routes and saved data | PGlite when `DATABASE_URL` is unset and `APP_ENV` is not `production`; PostgreSQL when it is set |
 
 Every template folder holds:
 
