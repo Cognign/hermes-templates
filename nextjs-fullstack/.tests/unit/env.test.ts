@@ -33,6 +33,9 @@ test("refuses to start in production without DATABASE_URL", () => {
     () => validateRuntimeEnvFrom({ APP_ENV: "production", DATA_DIR: "/data" }),
     /DATABASE_URL is required when APP_ENV=production/,
   );
+  for (const APP_ENV of ["Production", " production", "PRODUCTION "]) {
+    assert.throws(() => validateRuntimeEnvFrom({ APP_ENV }), /DATABASE_URL is required/);
+  }
 });
 
 test("uses secure cookies unless local HTTP opts out", () => {

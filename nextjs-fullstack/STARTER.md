@@ -14,7 +14,7 @@ Use this starter for a browser application that needs a TypeScript frontend, ser
 - Next.js App Router and React.
 - Email/password signup, signin, signout, and signed HTTP-only sessions. Sessions also work when the app is shown in an iframe on another site.
 - A protected dashboard with team membership, profile, password, and activity views.
-- Drizzle schema and committed additive migrations. The database is an embedded PGlite database when `DATABASE_URL` is unset and `APP_ENV` is not `production`, and PostgreSQL when `DATABASE_URL` is set. With `APP_ENV=production` and no `DATABASE_URL` the app refuses to start. The same migrations run on both.
+- Drizzle schema and committed additive migrations. The database is an embedded PGlite database when `DATABASE_URL` is unset and `APP_ENV` is not `production`, and PostgreSQL when `DATABASE_URL` is set. With `APP_ENV=production` and no `DATABASE_URL` the app refuses to start. The same migrations run on both. This is wider than the Hermes plan, which names only previews: local development without `DATABASE_URL` also uses PGlite.
 - A session signing key that the app creates on first start and keeps in the `app_settings` table. There is nothing to configure.
 - A startup migration runner guarded by a bounded PostgreSQL advisory lock.
 - Unit tests and an HTTP integration suite that runs on PGlite and on PostgreSQL.

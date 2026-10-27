@@ -7,7 +7,7 @@
 export function failureText(error: unknown, env: Record<string, string | undefined>) {
   let inner: unknown = error;
   while (inner instanceof Error && inner.cause !== undefined) inner = inner.cause;
-  const message = inner instanceof Error ? inner.message : "Unknown error";
+  const message = inner instanceof Error ? inner.message : String(inner);
   const code = (inner as { code?: unknown } | null)?.code;
   let text = typeof code === "string" && !message.includes(code) ? `${code} ${message}` : message;
   const url = env.DATABASE_URL?.trim();

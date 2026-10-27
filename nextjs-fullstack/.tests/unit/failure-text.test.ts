@@ -19,3 +19,7 @@ test("removes the database URL and its password", () => {
   const error = new Error(`connect failed for ${url} (password hunter2)`);
   assert.equal(failureText(error, { DATABASE_URL: url }), "connect failed for [redacted] (password [redacted])");
 });
+
+test("prints a thrown value that is not an Error", () => {
+  assert.equal(failureText("EACCES: permission denied", {}), "EACCES: permission denied");
+});

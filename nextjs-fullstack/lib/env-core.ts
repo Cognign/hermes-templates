@@ -13,7 +13,7 @@ export type DatabaseConfig =
 export function databaseConfigFrom(env: RuntimeEnv): DatabaseConfig {
   const value = env.DATABASE_URL?.trim();
   if (!value) {
-    if (env.APP_ENV === "production")
+    if (env.APP_ENV?.trim().toLowerCase() === "production")
       throw new Error(
         "DATABASE_URL is required when APP_ENV=production. Declare the database integration in hermes-app.json.",
       );

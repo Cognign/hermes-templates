@@ -58,6 +58,8 @@ async function migratePostgres(
     max: 1,
     connect_timeout: 10,
     idle_timeout: 5,
+    // A repeat start prints "already exists, skipping" notices; they are not failures.
+    onnotice: () => {},
   });
   const deadline = Date.now() + timeoutMs;
   let connection: postgres.ReservedSql | undefined;

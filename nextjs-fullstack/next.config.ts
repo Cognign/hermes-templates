@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // `next dev` would otherwise write an AGENTS.md into the app when it sees a coding agent.
   agentRules: false,
-  // `next dev` would otherwise write an AGENTS.md into the app when it sees a coding agent.
+  poweredByHeader: false,
   // PGlite loads its wasm files from disk, so it must not be bundled.
   serverExternalPackages: ["@electric-sql/pglite"],
   turbopack: { root: process.cwd() },

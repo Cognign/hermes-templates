@@ -16,7 +16,8 @@ export function openDatabase(config: DatabaseConfig): {
 } {
   if (config.kind === "pglite") {
     // PGlite creates the folder but not its parents, and a fresh clone has none.
-    mkdirSync(config.dir, { recursive: true });
+    // Owner-only: the folder holds the session signing key and password hashes.
+    mkdirSync(config.dir, { recursive: true, mode: 0o700 });
     const client = new PGlite(config.dir);
     return {
       db: drizzlePglite({ client, schema }),

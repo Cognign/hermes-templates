@@ -7,7 +7,7 @@ Starter apps that the Hermes assistant copies into a new app and then extends.
 - Hermes pins this repository as a git submodule at a reviewed commit.
 - The templates are copied into Hermes images when they are built. Nothing downloads this repository at runtime.
 - When an app starts from a template, its files are copied into the app. The app keeps them. A later change here does not update existing apps.
-- Each template's lock file is the approved package set. Apps cannot install packages from the network, so a package that is not in the lock file cannot be used.
+- Each template's lock file is the approved package set (`static-site` has no packages, so it has none). Apps cannot install packages from the network, so a package that is not in the lock file cannot be used.
 
 ## Templates
 
@@ -19,7 +19,7 @@ Starter apps that the Hermes assistant copies into a new app and then extends.
 
 Every template folder holds:
 
-- the code and its lock file (`uv.lock` or `package-lock.json`);
+- the code and its lock file (`uv.lock` or `package-lock.json`), when it has packages;
 - `STARTER.md`, with front matter (`id`, `version`, `summary`, `use_when`) that Hermes reads to list templates, and a short guide for adding one feature;
 - `hermes-app.json`, the declaration copied into new apps (`template`, and `integrations` when the app needs a database);
 - `LICENSE`, and `UPSTREAM.md` when the code is adapted from outside.
