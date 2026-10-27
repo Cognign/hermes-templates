@@ -1,8 +1,10 @@
 """Database engine and session management using SQLAlchemy 2."""
 
 import fcntl
+import logging
 import os
-from collections.abc import Generator
+import time
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
@@ -13,9 +15,12 @@ from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from alembic.script.revision import RevisionError
 from sqlalchemy import URL, Engine, create_engine, event, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.settings import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class Base(DeclarativeBase):
@@ -24,6 +29,8 @@ class Base(DeclarativeBase):
 
 # Any 64-bit number; every copy of this app uses the same one.
 MIGRATION_LOCK_ID = 742103422
+MIGRATION_LOCK_TIMEOUT_SECONDS = 30.0
+MIGRATION_LOCK_POLL_SECONDS = 0.1
 
 
 def normalize_database_url(url: str | URL) -> str | URL:
@@ -37,8 +44,26 @@ def normalize_database_url(url: str | URL) -> str | URL:
     return url
 
 
+def prepare_sqlite_file(url: str | URL) -> None:
+    """Create the folder (0700 if new) and the database file (always 0600).
+
+    Does nothing for other databases or an in-memory SQLite.
+    """
+    parsed = make_url(url)
+    if parsed.get_backend_name() != "sqlite" or not parsed.database:
+        return
+    path = Path(parsed.database)
+    if parsed.database == ":memory:" or str(parsed.query.get("mode")) == "memory":
+        return
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.close(os.open(path, os.O_CREAT | os.O_RDWR, 0o600))
+    path.chmod(0o600)
+
+
 @lru_cache
 def _engine_for(url: str | URL) -> Engine:
+    # Once per URL, not once per request: this is the only place that touches files.
+    prepare_sqlite_file(url)
     engine = create_engine(url, pool_pre_ping=True)
     if engine.dialect.name == "sqlite":
 
@@ -78,16 +103,51 @@ class MigrationError(RuntimeError):
         )
 
 
+class MigrationLockTimeoutError(MigrationError):
+    """Another copy held the migration lock for longer than the limit."""
+
+    def __init__(self) -> None:
+        RuntimeError.__init__(self, "Timed out waiting for the migration lock")
+
+
+def _acquire_with_timeout(try_acquire: Callable[[], bool]) -> None:
+    """Poll until try_acquire succeeds; log once while waiting, give up at the limit."""
+    deadline = time.monotonic() + MIGRATION_LOCK_TIMEOUT_SECONDS
+    announced = False
+    while not try_acquire():
+        if time.monotonic() >= deadline:
+            raise MigrationLockTimeoutError
+        if not announced:
+            logger.warning("Waiting for another copy to finish migrating the database")
+            announced = True
+        time.sleep(MIGRATION_LOCK_POLL_SECONDS)
+
+
 @contextmanager
 def _migration_lock(engine: Engine) -> Generator[None]:
     """One process at a time migrates: pg_advisory_lock, or a lock file on SQLite."""
     if engine.dialect.name == "postgresql":
+        conn = None
         try:
             conn = engine.connect().execution_options(isolation_level="AUTOCOMMIT")
-            conn.execute(
-                text("SELECT pg_advisory_lock(:id)"), {"id": MIGRATION_LOCK_ID}
-            )
+            held = conn
+
+            def try_acquire() -> bool:
+                return bool(
+                    held.execute(
+                        text("SELECT pg_try_advisory_lock(:id)"),
+                        {"id": MIGRATION_LOCK_ID},
+                    ).scalar_one()
+                )
+
+            _acquire_with_timeout(try_acquire)
+        except MigrationLockTimeoutError:
+            if conn is not None:
+                conn.close()
+            raise
         except Exception as error:
+            if conn is not None:
+                conn.close()
             raise MigrationError("taking the migration lock", error) from None
         try:
             yield
@@ -102,11 +162,17 @@ def _migration_lock(engine: Engine) -> Generator[None]:
                 conn.close()
     elif engine.dialect.name == "sqlite" and engine.url.database:
         lock_path = f"{engine.url.database}.lock"
+        fd = -1
         try:
             fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
             os.chmod(lock_path, 0o600)
-            fcntl.flock(fd, fcntl.LOCK_EX)
+            _acquire_with_timeout(lambda: _try_flock(fd))
+        except MigrationLockTimeoutError:
+            os.close(fd)
+            raise
         except Exception as error:
+            if fd >= 0:
+                os.close(fd)
             raise MigrationError("taking the migration lock", error) from None
         try:
             yield
@@ -116,14 +182,47 @@ def _migration_lock(engine: Engine) -> Generator[None]:
         yield
 
 
+def _try_flock(fd: int) -> bool:
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return False
+    return True
+
+
+def _database_is_ahead(engine: Engine) -> bool:
+    """True when the database is at a revision this code does not know.
+
+    That happens after a rollback: a newer release already migrated it.
+    """
+    with engine.connect() as conn:
+        current = MigrationContext.configure(conn).get_current_heads()
+    if not current:
+        return False
+    script = ScriptDirectory.from_config(alembic_config())
+    try:
+        list(script.iterate_revisions(current, "base"))
+    except RevisionError:
+        return True
+    return False
+
+
 def run_migrations() -> None:
     """Apply the committed migrations, one process at a time.
 
-    Safe to call from several processes at once: the others wait, then find
-    nothing left to apply.
+    Safe to call from several processes at once: the others wait up to 30
+    seconds, then find nothing left to apply. A database already migrated by a
+    newer release is left alone, so a rolled-back release keeps serving.
     """
-    with _migration_lock(get_engine()):
+    engine = get_engine()
+    with _migration_lock(engine):
         try:
+            if _database_is_ahead(engine):
+                logger.warning(
+                    "The database is at a newer revision than this version of "
+                    "the app knows; starting without migrating"
+                )
+                return
             command.upgrade(alembic_config(), "head")
         except Exception as error:
             raise MigrationError("applying migrations", error) from None

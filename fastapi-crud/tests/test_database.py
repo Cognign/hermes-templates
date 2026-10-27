@@ -1,16 +1,20 @@
 """Database choice, migrations and readiness on SQLite and PostgreSQL."""
 
+import fcntl
+import logging
 import os
 import stat
 import subprocess
 import sys
 import time
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import URL, text
+from sqlalchemy import URL, Connection, text
 
+from app import db as app_db
 from app.db import (
     MIGRATION_LOCK_ID,
     MigrationError,
@@ -25,10 +29,12 @@ from app.settings import Settings, get_settings
 def test_preview_uses_sqlite_file_in_data_dir(tmp_path: Path) -> None:
     data_dir = tmp_path / "data"
     settings = Settings(app_env="preview", data_dir=data_dir)
-    assert settings.effective_database_url == URL.create(
-        "sqlite", database=f"{data_dir.resolve()}/app.db"
-    )
+    url = settings.effective_database_url
+    assert url == URL.create("sqlite", database=f"{data_dir.resolve()}/app.db")
+    assert not data_dir.exists()
+    get_engine(url)
     assert stat.S_IMODE(data_dir.stat().st_mode) == 0o700
+    assert stat.S_IMODE((data_dir / "app.db").stat().st_mode) == 0o600
 
 
 @pytest.mark.parametrize("name", ["q?x", "a#b", "50%25", "with space", "a?b#c%d e"])
@@ -49,7 +55,7 @@ def test_database_file_is_private_even_when_data_dir_already_exists(
     data_dir = tmp_path / "shared"
     data_dir.mkdir(mode=0o755)
     data_dir.chmod(0o755)
-    Settings(app_env="preview", data_dir=data_dir).effective_database_url  # noqa: B018
+    get_engine(Settings(app_env="preview", data_dir=data_dir).effective_database_url)
     assert stat.S_IMODE((data_dir / "app.db").stat().st_mode) == 0o600
     assert stat.S_IMODE(data_dir.stat().st_mode) == 0o755
     run_migrations_in_data_dir = get_engine(
@@ -62,12 +68,35 @@ def test_database_file_is_private_even_when_data_dir_already_exists(
             assert stat.S_IMODE(side_file.stat().st_mode) == 0o600, side_file.name
 
 
+def test_repeated_engine_lookups_do_no_file_work(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    get_engine()
+    calls: list[str] = []
+    real_open, real_chmod, real_mkdir = os.open, os.chmod, Path.mkdir
+    monkeypatch.setattr(
+        os, "open", lambda *a, **k: (calls.append("open"), real_open(*a, **k))[1]
+    )
+    monkeypatch.setattr(Path, "chmod", lambda *a, **k: calls.append("chmod"))
+    monkeypatch.setattr(
+        Path, "mkdir", lambda *a, **k: (calls.append("mkdir"), real_mkdir(*a, **k))[1]
+    )
+    monkeypatch.setattr(
+        os, "chmod", lambda *a, **k: (calls.append("oschmod"), real_chmod(*a, **k))[1]
+    )
+    for _ in range(100):
+        get_engine()
+        get_settings().effective_database_url  # noqa: B018
+    assert calls == []
+
+
 def test_data_dir_defaults_to_dot_data(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.delenv("DATA_DIR")
     monkeypatch.chdir(tmp_path)
     url = Settings().effective_database_url
+    get_engine(url)
     assert url == URL.create(
         "sqlite", database=str((tmp_path / ".data" / "app.db").resolve())
     )
@@ -253,3 +282,233 @@ def test_startup_migrates_postgresql(monkeypatch: pytest.MonkeyPatch) -> None:
             version = conn.execute(text("SELECT version_num FROM alembic_version"))
             assert version.scalar_one() == "0001_baseline"
     assert not Path(os.environ["DATA_DIR"]).exists()
+
+
+class Messages(logging.Handler):
+    """Collects app.db log lines. caplog loses its handler once Alembic runs
+    fileConfig, which replaces the root logger's handlers."""
+
+    def __init__(self) -> None:
+        super().__init__(logging.INFO)
+        self.lines: list[str] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.lines.append(record.getMessage())
+
+
+@pytest.fixture
+def db_log() -> Generator[Messages]:
+    handler = Messages()
+    logger = logging.getLogger("app.db")
+    logger.addHandler(handler)
+    previous = logger.level
+    logger.setLevel(logging.INFO)
+    yield handler
+    logger.removeHandler(handler)
+    logger.setLevel(previous)
+
+
+def sqlite_lock_path() -> Path:
+    return Path(os.environ["DATA_DIR"]) / "app.db.lock"
+
+
+def test_sqlite_lock_file_is_private_and_released_after_success() -> None:
+    run_migrations()
+    assert stat.S_IMODE(sqlite_lock_path().stat().st_mode) == 0o600
+    fd = os.open(sqlite_lock_path(), os.O_RDWR)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    finally:
+        os.close(fd)
+
+
+def test_sqlite_lock_is_released_after_an_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def broken(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr("app.db.command.upgrade", broken)
+    with pytest.raises(MigrationError):
+        run_migrations()
+    fd = os.open(sqlite_lock_path(), os.O_RDWR)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    finally:
+        os.close(fd)
+
+
+def test_sqlite_lock_wait_logs_once_then_times_out(
+    monkeypatch: pytest.MonkeyPatch, db_log: Messages
+) -> None:
+    run_migrations()
+    monkeypatch.setattr(app_db, "MIGRATION_LOCK_TIMEOUT_SECONDS", 0.5)
+    monkeypatch.setattr(app_db, "MIGRATION_LOCK_POLL_SECONDS", 0.05)
+    holder = os.open(sqlite_lock_path(), os.O_RDWR)
+    fcntl.flock(holder, fcntl.LOCK_EX)
+    try:
+        with pytest.raises(MigrationError) as info:
+            run_migrations()
+    finally:
+        os.close(holder)
+    assert str(info.value) == "Timed out waiting for the migration lock"
+    waiting = [m for m in db_log.lines if "Waiting for another copy" in m]
+    assert len(waiting) == 1
+
+
+def test_sqlite_lock_waits_then_proceeds_when_released(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_migrations()
+    monkeypatch.setattr(app_db, "MIGRATION_LOCK_POLL_SECONDS", 0.05)
+    holder = os.open(sqlite_lock_path(), os.O_RDWR)
+    fcntl.flock(holder, fcntl.LOCK_EX)
+    real_sleep = time.sleep
+
+    def release_on_first_sleep(seconds: float) -> None:
+        os.close(holder)
+        monkeypatch.setattr(time, "sleep", real_sleep)
+
+    monkeypatch.setattr(time, "sleep", release_on_first_sleep)
+    run_migrations()
+
+
+def test_sqlite_lock_file_descriptor_is_closed_when_flock_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    opened: list[int] = []
+    real_open = os.open
+
+    def tracking_open(path: str | Path, *args: int) -> int:
+        fd = real_open(path, *args)
+        if str(path).endswith(".lock"):
+            opened.append(fd)
+        return fd
+
+    def broken_flock(*_args: object) -> None:
+        raise OSError("flock failed")
+
+    monkeypatch.setattr(os, "open", tracking_open)
+    monkeypatch.setattr(fcntl, "flock", broken_flock)
+    with pytest.raises(MigrationError) as info:
+        run_migrations()
+    assert str(info.value) == (
+        "Database migration failed while taking the migration lock (OSError)"
+    )
+    assert len(opened) == 1
+    with pytest.raises(OSError):
+        os.fstat(opened[0])
+
+
+def test_sqlite_lock_file_descriptor_is_closed_when_chmod_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    opened: list[int] = []
+    real_open = os.open
+
+    def tracking_open(path: str | Path, *args: int) -> int:
+        fd = real_open(path, *args)
+        if str(path).endswith(".lock"):
+            opened.append(fd)
+        return fd
+
+    def broken_chmod(path: str | Path, *_args: int, **_kwargs: object) -> None:
+        if str(path).endswith(".lock"):
+            raise PermissionError("no")
+
+    monkeypatch.setattr(os, "open", tracking_open)
+    monkeypatch.setattr(os, "chmod", broken_chmod)
+    with pytest.raises(MigrationError):
+        run_migrations()
+    with pytest.raises(OSError):
+        os.fstat(opened[0])
+
+
+def test_database_at_a_newer_revision_starts_without_upgrading(
+    db_log: Messages,
+) -> None:
+    run_migrations()
+    with get_engine().begin() as conn:
+        conn.execute(text("UPDATE alembic_version SET version_num='9999_future'"))
+    with TestClient(app) as client:
+        assert client.get("/readyz").status_code == 200
+    ahead = [m for m in db_log.lines if "newer revision" in m]
+    assert len(ahead) == 1
+    with get_engine().connect() as conn:
+        version = conn.execute(text("SELECT version_num FROM alembic_version"))
+        assert version.scalar_one() == "9999_future"
+
+
+def use_postgresql(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", os.environ["TEST_DATABASE_URL"])
+    get_settings.cache_clear()
+
+
+needs_postgresql = pytest.mark.skipif(
+    "TEST_DATABASE_URL" not in os.environ, reason="needs a PostgreSQL server"
+)
+
+
+@needs_postgresql
+def test_postgresql_database_at_a_newer_revision_starts_without_upgrading(
+    monkeypatch: pytest.MonkeyPatch, db_log: Messages
+) -> None:
+    use_postgresql(monkeypatch)
+    run_migrations()
+    with get_engine().begin() as conn:
+        conn.execute(text("UPDATE alembic_version SET version_num='9999_future'"))
+    try:
+        with TestClient(app) as client:
+            assert client.get("/readyz").status_code == 200
+        assert len([m for m in db_log.lines if "newer revision" in m]) == 1
+        with get_engine().connect() as conn:
+            version = conn.execute(text("SELECT version_num FROM alembic_version"))
+            assert version.scalar_one() == "9999_future"
+    finally:
+        with get_engine().begin() as conn:
+            conn.execute(text("UPDATE alembic_version SET version_num='0001_baseline'"))
+
+
+@needs_postgresql
+def test_postgresql_lock_wait_logs_once_then_times_out(
+    monkeypatch: pytest.MonkeyPatch, db_log: Messages
+) -> None:
+    use_postgresql(monkeypatch)
+    monkeypatch.setattr(app_db, "MIGRATION_LOCK_TIMEOUT_SECONDS", 0.5)
+    monkeypatch.setattr(app_db, "MIGRATION_LOCK_POLL_SECONDS", 0.05)
+    holder = get_engine().connect()
+    try:
+        holder.execute(text("SELECT pg_advisory_lock(:id)"), {"id": MIGRATION_LOCK_ID})
+        with pytest.raises(MigrationError) as info:
+            run_migrations()
+    finally:
+        holder.execute(text("SELECT pg_advisory_unlock_all()"))
+        holder.close()
+    assert str(info.value) == "Timed out waiting for the migration lock"
+    waiting = [m for m in db_log.lines if "Waiting for another copy" in m]
+    assert len(waiting) == 1
+
+
+@needs_postgresql
+def test_postgresql_lock_connection_is_closed_when_taking_the_lock_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    use_postgresql(monkeypatch)
+    engine = get_engine()
+    opened: list[Connection] = []
+    real_connect = engine.connect
+
+    def tracking_connect() -> Connection:
+        conn = real_connect()
+        opened.append(conn)
+        return conn
+
+    def broken(_try_acquire: object) -> None:
+        raise RuntimeError("lock failed")
+
+    monkeypatch.setattr(engine, "connect", tracking_connect)
+    monkeypatch.setattr(app_db, "_acquire_with_timeout", broken)
+    with pytest.raises(MigrationError):
+        run_migrations()
+    assert len(opened) == 1
+    assert opened[0].closed

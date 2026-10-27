@@ -105,15 +105,12 @@ class Settings(BaseSettings):
         """DATABASE_URL, or the SQLite file in DATA_DIR when outside production.
 
         The SQLite URL is built as an object, not a string, so a path with
-        `?`, `#`, `%` or spaces stays a path. A DATA_DIR that already exists
-        keeps its mode; the database file is always 0600.
+        `?`, `#`, `%` or spaces stays a path. This only builds the URL; the
+        folder and 0600 file are made once, when the engine is created.
         """
         if self.database_url:
             return self.database_url
-        self.data_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
         path = (self.data_dir / "app.db").resolve()
-        os.close(os.open(path, os.O_CREAT | os.O_RDWR, 0o600))
-        path.chmod(0o600)
         return URL.create("sqlite", database=str(path))
 
     def __repr__(self) -> str:

@@ -6,7 +6,7 @@ from alembic import context
 from sqlalchemy import URL, create_engine, pool
 from sqlalchemy.engine import make_url
 
-from app.db import Base, normalize_database_url
+from app.db import Base, normalize_database_url, prepare_sqlite_file
 from app.settings import get_settings
 
 config = context.config
@@ -39,7 +39,9 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode against a live database connection."""
-    connectable = create_engine(get_url(), poolclass=pool.NullPool)
+    url = get_url()
+    prepare_sqlite_file(url)
+    connectable = create_engine(url, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
         context.configure(
