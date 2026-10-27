@@ -56,17 +56,28 @@ export async function readFormRequest(request: Request, maxBytes = MAX_FORM_BYTE
 
 export function formRedirectLocation(
   pathname: string,
-  message?: { error?: string; success?: string },
+  message?: { error?: string; success?: string; fields?: readonly string[] },
 ) {
   if (!pathname.startsWith("/") || pathname.startsWith("//"))
     throw new Error("Redirect path must be application-relative");
   const query = new URLSearchParams();
   if (message?.error) query.set("error", message.error);
   if (message?.success) query.set("success", message.success);
+  if (message?.error && message.fields?.length) query.set("fields", message.fields.join(","));
   if (!query.size) return pathname;
   return `${pathname}${pathname.includes("?") ? "&" : "?"}${query}`;
 }
 
 export function safeMessage(value: string | null) {
   return value?.slice(0, 160) || "";
+}
+
+/** The form fields named in `?fields=`, limited to the ones the page really has. */
+export function invalidFields<const Name extends string>(
+  value: unknown,
+  allowed: readonly Name[],
+): ReadonlySet<Name> {
+  // A repeated `?fields=` arrives as an array; only one plain value is honoured.
+  const named = new Set((typeof value === "string" ? value : "").split(",").slice(0, 10));
+  return new Set(allowed.filter((name) => named.has(name)));
 }

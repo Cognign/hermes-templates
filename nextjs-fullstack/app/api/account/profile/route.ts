@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success)
     return formRedirect("/dashboard/general", {
       error: parsed.error.issues[0]?.message || "Invalid profile details",
+      fields: parsed.error.issues.slice(0, 1).map((issue) => String(issue.path[0])),
     });
 
   try {

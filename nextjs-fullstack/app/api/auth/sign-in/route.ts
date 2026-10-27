@@ -13,14 +13,13 @@ import { formRedirect, parseFormRequest } from "@/lib/server/responses";
 import { setSessionCookie } from "@/lib/server/session";
 import { signInSchema } from "@/lib/validation";
 
-const invalidCredentials = "Invalid email or password";
+const credentialsError = { error: "Invalid email or password", fields: ["email", "password"] };
 
 export async function POST(request: NextRequest) {
   const form = await parseFormRequest(request);
   if (!form.ok) return form.response;
   const parsed = signInSchema.safeParse(form.data);
-  if (!parsed.success)
-    return formRedirect("/sign-in", { error: invalidCredentials });
+  if (!parsed.success) return formRedirect("/sign-in", credentialsError);
 
   try {
     validateRuntimeEnv();
@@ -39,10 +38,10 @@ export async function POST(request: NextRequest) {
 
   if (!account) {
     await hashPassword(parsed.data.password);
-    return formRedirect("/sign-in", { error: invalidCredentials });
+    return formRedirect("/sign-in", credentialsError);
   }
   if (!(await comparePassword(parsed.data.password, account.user.passwordHash)))
-    return formRedirect("/sign-in", { error: invalidCredentials });
+    return formRedirect("/sign-in", credentialsError);
 
   await db().insert(activityLogs).values({
     teamId: account.membership.teamId,

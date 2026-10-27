@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success)
     return formRedirect("/sign-up", {
       error: parsed.error.issues[0]?.message || "Invalid signup details",
+      fields: parsed.error.issues.slice(0, 1).map((issue) => String(issue.path[0])),
     });
 
   try {
