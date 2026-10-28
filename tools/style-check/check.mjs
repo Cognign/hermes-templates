@@ -63,6 +63,9 @@ async function checkOne(style, mode) {
     const stops = await keyboardPass(page);
     failures.push(...stops.filter((s) => s.ratio < 3).map((s) => `focus ${s.at}: ${s.indicator} ${s.ratio.toFixed(2)}:1, needs 3:1`));
 
+    const states = await pointerStates(page);
+    failures.push(...states.failures);
+
     let overlayTexts = 0;
     for (const overlay of overlays) {
       await overlay.open(page);
@@ -78,7 +81,7 @@ async function checkOne(style, mode) {
     }
     console.log(
       `${failures.length ? "FAIL" : "ok  "} ${style}/${mode}: ${main.texts} texts (lowest ${main.lowestText.toFixed(2)}:1), ` +
-        `${main.edges} control edges, ${stops.length} focus stops, ${overlays.length} overlays (${overlayTexts} texts)`,
+        `${main.edges} control edges, ${stops.length} focus stops, ${states.measured} hover/pressed states, ${overlays.length} overlays (${overlayTexts} texts)`,
     );
   } finally {
     await page.close();
@@ -96,6 +99,43 @@ async function axeFailures(page, scope, where = "page") {
     scope,
   );
   return violations.flatMap((v) => v.nodes.map((n) => `${where} axe ${v.id} ${n.target.join(" ")}: ${n.any[0]?.message ?? ""}`));
+}
+
+/**
+ * Hovers, then presses, every enabled button and link on the page and checks
+ * its text contrast in that state, because a style can change the fill on
+ * :hover or :active. The press is released away from the control so it never
+ * fires a click.
+ */
+async function pointerStates(page) {
+  const failures = [];
+  let measured = 0;
+  const targets = page.locator("body > :not([data-sonner-toaster]) :is(button, a[href]):visible:not(:disabled, [aria-disabled=true])");
+  const count = await targets.count();
+  for (let i = 0; i < count; i++) {
+    const target = targets.nth(i);
+    const name = (await target.innerText()).trim().slice(0, 40) || (await target.getAttribute("aria-label")) || `#${i}`;
+    await target.hover();
+    for (const state of ["hover", "pressed"]) {
+      if (state === "pressed") await page.mouse.down();
+      await settle(page);
+      await target.evaluate((el) => el.setAttribute("data-style-check-state", ""));
+      const result = await page.evaluate(auditContrast, "[data-style-check-state]");
+      const axe = await axeFailures(page, "[data-style-check-state]", `${state} "${name}"`);
+      await target.evaluate((el) => el.removeAttribute("data-style-check-state"));
+      measured++;
+      failures.push(...describe(result.failures, `${state} "${name}"`), ...axe);
+    }
+    await page.mouse.move(0, 0);
+    await page.mouse.up();
+    // Radix menus and selects open on pointer down, before the release.
+    if (await target.evaluate((el) => el.hasAttribute("aria-haspopup") || el.getAttribute("aria-expanded") === "true")) {
+      await page.keyboard.press("Escape");
+      await page.waitForFunction(() => getComputedStyle(document.body).pointerEvents !== "none");
+    }
+  }
+  if (count === 0) throw new Error("The hover pass found no buttons or links.");
+  return { measured, failures };
 }
 
 /** Tabs through the page until focus comes back round, checking each stop. */

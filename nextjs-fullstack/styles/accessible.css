@@ -40,6 +40,15 @@ html:is(.style-vega, .style-nova, .style-maia, .style-lyra, .style-mira, .style-
   background-color: color-mix(in oklch, var(--destructive) 12%, transparent);
 }
 
+/* The hover tint (20% light, 30% dark) is also too strong for the red text; a lighter one stays above 4.5:1. */
+html:is(.style-vega, .style-nova, .style-maia, .style-lyra, .style-mira, .style-luma, .style-sera, .style-rhea, .style-minimal) :is(.cn-button-variant-destructive, a.cn-badge-variant-destructive):hover {
+  background-color: color-mix(in oklch, var(--destructive) 14%, transparent);
+}
+
+html:is(.style-vega, .style-nova, .style-maia, .style-lyra, .style-mira, .style-luma, .style-sera, .style-rhea, .style-minimal).dark :is(.cn-button-variant-destructive, a.cn-badge-variant-destructive):hover {
+  background-color: color-mix(in oklch, var(--destructive) 18%, transparent);
+}
+
 /* Luma and Rhea draw text fields with a tint and no edge, and the tint dims the placeholder. */
 html:is(.style-luma, .style-rhea) :is(.cn-input, .cn-textarea, .cn-select-trigger):not([aria-invalid="true"], :focus-visible) {
   border-color: var(--input);
