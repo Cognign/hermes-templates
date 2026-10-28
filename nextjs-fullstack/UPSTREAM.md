@@ -37,3 +37,8 @@ Changes made for Hermes on top of Foundry's copy:
 - `app/globals.css` sets the theme variables with tweakcn's names (<https://github.com/jnsahaj/tweakcn>, `types/theme.ts`, Apache-2.0), including `--destructive-foreground`. The shadow scale follows the logic of `utils/shadows.ts` from tweakcn at commit `a3b47b37cba97dd637de517aab52c45ec0f83456` (Apache-2.0, <https://github.com/jnsahaj/tweakcn/blob/a3b47b37cba97dd637de517aab52c45ec0f83456/utils/shadows.ts>): the same multipliers and second layers, written as CSS (`color-mix`, `calc`) instead of TypeScript. tweakcn's Apache-2.0 licence applies to that adapted logic. Its full text ships as `LICENSE-APACHE-2.0`, and the comment above the shadow scale in `app/globals.css` says what changed.
 - Outline buttons use `--input` for their border in light mode too (a small rule at the end of `app/globals.css`), because Vega's `--border` is a 1.3:1 divider colour. Neutral base colour. `--input` and `--ring` are darker than shadcn's neutral defaults so input borders and focus rings reach 3:1 contrast.
 - Updating means: re-copy the files from a newer commit, and rerun the lock date check and the visual check.
+
+## The other design styles
+
+- `styles/style-nova.css`, `style-maia.css`, `style-lyra.css`, `style-mira.css`, `style-luma.css`, `style-sera.css` and `style-rhea.css` are copied byte for byte from `apps/v4/registry/styles/` at the same shadcn/ui commit, `ba1503c64472b82256d9de95e2e62c5901a38e8b` (MIT, Copyright (c) 2023 shadcn).
+- `app/hermes-gallery/` is a preview-only page that shows every component in each style. It is Hermes's own code. It returns 404 when `APP_ENV=production`.
