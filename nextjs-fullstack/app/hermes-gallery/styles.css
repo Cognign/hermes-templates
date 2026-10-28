@@ -15,3 +15,5 @@
 @import "../../styles/style-bold.css";
 @import "../../styles/style-neumorphic.css";
 @import "../../styles/style-glass.css";
+/* Belongs in app/globals.css next to the style import once the theme work lands there. */
+@import "../../styles/accessible.css";
