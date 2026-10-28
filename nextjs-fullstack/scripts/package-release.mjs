@@ -11,7 +11,11 @@ await stat(path.join(out, "server.js")).catch(() => {
 
 await mkdir(path.join(out, ".next"), { recursive: true });
 await cp(".next/static", path.join(out, ".next/static"), { recursive: true });
-await cp("public", path.join(out, "public"), { recursive: true }).catch((error) => {
+// The live theme script is for previews only, so a published app does not serve it.
+await cp("public", path.join(out, "public"), {
+  recursive: true,
+  filter: (source) => path.basename(source) !== "hermes-live-theme.js",
+}).catch((error) => {
   if (error.code !== "ENOENT") throw error;
 });
 await cp("drizzle", path.join(out, "drizzle"), { recursive: true });

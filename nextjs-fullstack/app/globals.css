@@ -1,115 +1,21 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "../styles/shadcn-tailwind.css";
-@import "../styles/style-vega.css";
+/* The theme values and the chosen style come from hermes-theme.json, rendered into theme.css. */
+@import "./theme.css";
 
-/* The theme script in app/layout.tsx puts `.dark` on <html> before first paint. */
+/* app/layout.tsx puts `.dark` on <html> before first paint (see its theme script). */
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Theme values use tweakcn's variable names, so a tweakcn theme can replace the
- * two blocks below. Components read these through the tokens in @theme inline.
- * Never write a colour into a component; change a variable here.
- */
-:root {
-  color-scheme: light;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.45 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.52 0.22 27);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.62 0 0);
-  --ring: oklch(0.35 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.35 0 0);
-
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-
-  --radius: 0.625rem;
-
-  /* Shadow base variables (tweakcn names). The scale is derived below. */
-  --shadow-color: oklch(0 0 0);
-  --shadow-opacity: 0.1;
-  --shadow-blur: 3px;
-  --shadow-spread: 0px;
-  --shadow-offset-x: 0px;
-  --shadow-offset-y: 1px;
-
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
-}
-
-.dark {
-  color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.75 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.72 0.19 22);
-  --destructive-foreground: oklch(0.145 0 0);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(0.58 0 0);
-  --ring: oklch(0.85 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.922 0 0);
-  --sidebar-primary-foreground: oklch(0.205 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.85 0 0);
-}
-
-/*
- * The shadow scale, derived from the six base variables above in the way
+ * The shadow scale, derived from the six base variables in theme.css in the way
  * tweakcn's utils/shadows.ts does it (https://github.com/jnsahaj/tweakcn,
  * commit a3b47b3, Apache-2.0, see LICENSE-APACHE-2.0): a first layer from the
  * base variables, and for sm to xl a second layer with a fixed offset, blur and
  * a spread one pixel smaller. Changed from the original: rewritten from
  * TypeScript into CSS custom properties, and the colour's own alpha is replaced
  * by the opacity, as tweakcn does, using relative colour syntax.
- * It sits apart from the theme blocks so a theme that replaces those blocks
- * keeps the derivation.
+ * It stays here, not in theme.css, so every theme keeps the derivation.
  */
 :root,
 .dark {

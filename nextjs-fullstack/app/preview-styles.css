@@ -1,0 +1,8 @@
+/*
+ * Every style in styles/, so the live preview can switch style without a rebuild. Only `next dev`
+ * loads this file (see app/layout.tsx). Add a line here for each new style-<id>.css; a unit test
+ * checks the list.
+ */
+@reference "./globals.css";
+@import "../styles/style-lyra.css";
+@import "../styles/style-vega.css";
