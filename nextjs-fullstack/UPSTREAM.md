@@ -41,4 +41,6 @@ Changes made for Hermes on top of Foundry's copy:
 ## The other design styles
 
 - `styles/style-nova.css`, `style-maia.css`, `style-lyra.css`, `style-mira.css`, `style-luma.css`, `style-sera.css` and `style-rhea.css` are copied byte for byte from `apps/v4/registry/styles/` at the same shadcn/ui commit, `ba1503c64472b82256d9de95e2e62c5901a38e8b` (MIT, Copyright (c) 2023 shadcn).
+- `styles/style-minimal.css`, `style-brutalist.css` and `style-bold.css` start from `style-vega.css`, and `style-neumorphic.css` and `style-glass.css` from `style-luma.css`, at that commit. Each keeps every hook and rewrites the ones that make it distinct (see `themes/README.md`). The brutalist style follows the classes of [ekmas/neobrutalism-components](https://github.com/ekmas/neobrutalism-components) at commit `3306a802724874a85f93079702b2795370a279d4` (MIT); no code was copied from it.
+- `styles/accessible.css` is Hermes's own: WCAG fixes that apply on top of any style, so the copied files stay unchanged.
 - `app/hermes-gallery/` is a preview-only page that shows every component in each style. It is Hermes's own code. It returns 404 when `APP_ENV=production`.

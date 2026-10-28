@@ -12,6 +12,8 @@ import { galleryUrl, settle, styleIds, waitForStyle } from "./gallery.mjs";
 const only = process.argv.slice(2);
 const styles = only.length ? only : styleIds;
 const engine = process.env.BROWSER === "webkit" ? webkit : chromium;
+// Safari's Tab skips buttons and links unless Option is held.
+const tabKey = engine === webkit ? "Alt+Tab" : "Tab";
 const axeSource = await readFile(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 
 // Each overlay: how to open it, and the element that holds its content.
@@ -102,7 +104,7 @@ async function keyboardPass(page) {
   const stops = [];
   const seen = new Set();
   for (let i = 0; i < 200; i++) {
-    await page.keyboard.press("Tab");
+    await page.keyboard.press(tabKey);
     await settle(page);
     const stop = await page.evaluate(auditFocused);
     if (!stop) continue;

@@ -6,7 +6,7 @@ import "./styles.css";
 // Read APP_ENV on every request: a published app runs the same build with APP_ENV=production.
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Style gallery", robots: { index: false } };
+export const metadata = { robots: { index: false } };
 
 /** Preview-only page that shows every starter component in one design style and mode. */
 export default async function GalleryPage({

@@ -367,20 +367,21 @@ function Feedback() {
 function MembersTable() {
   return (
     <Section title="Table">
-      <Table>
+      <Table className="table-fixed">
         <TableCaption>Members of the Design team.</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="w-24">Role</TableHead>
+            <TableHead className="w-20 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {members.map((member) => (
             <TableRow key={member.email}>
-              <TableCell className="whitespace-normal">
-                <div className="flex items-center gap-3">
+              <TableCell>
+                {/* Style files set nowrap on the cell itself, so wrapping is allowed one level down. */}
+                <div className="flex min-w-0 items-center gap-3 whitespace-normal">
                   <Avatar>
                     <AvatarFallback>
                       {member.name
@@ -390,7 +391,7 @@ function MembersTable() {
                         .join("")}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex min-w-0 flex-col">
+                  <div className="flex min-w-0 flex-1 flex-col">
                     <span className="font-medium wrap-anywhere">{member.name}</span>
                     <span className="text-muted-foreground wrap-anywhere">{member.email}</span>
                   </div>

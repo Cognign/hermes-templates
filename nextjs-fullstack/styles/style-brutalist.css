@@ -78,7 +78,7 @@
   }
 
   .cn-avatar-fallback {
-    @apply bg-muted text-muted-foreground rounded-full border-2 border-foreground font-semibold text-foreground;
+    @apply bg-muted text-muted-foreground rounded-full border-2 border-foreground text-xs font-semibold text-foreground;
   }
 
   .cn-avatar-image {

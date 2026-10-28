@@ -41,7 +41,7 @@ html:is(.style-vega, .style-nova, .style-maia, .style-lyra, .style-mira, .style-
 }
 
 /* Luma and Rhea draw text fields with a tint and no edge, and the tint dims the placeholder. */
-html:is(.style-luma, .style-rhea) :is(.cn-input, .cn-textarea, .cn-select-trigger):not([aria-invalid="true"]) {
+html:is(.style-luma, .style-rhea) :is(.cn-input, .cn-textarea, .cn-select-trigger):not([aria-invalid="true"], :focus-visible) {
   border-color: var(--input);
 }
 

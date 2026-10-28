@@ -33,7 +33,7 @@ This guide is everything you need. Do not re-read the starter's files to redisco
 4. **Writes:** add `app/api/<feature>/route.ts` modelled on `app/api/account/profile/route.ts`: `parseFormRequest`, then `requestUserContext` (redirect to `/sign-in` if empty), then a Zod schema from `lib/validation.ts`, then the write scoped to `context.user.id`, then `formRedirect` back with `success` or `error`. Plain HTML forms that post to the route are enough; no client state library is needed.
 5. **Stop:** finish once the code is in place. The preview starts by itself and applies migrations on start; the checks below are optional follow-ups the person can ask for.
 
-Leave sign-in, sign-up, profile, security, activity, not-found, and their styles unchanged unless the request asks for them. They already work and pass the integration suite.
+Leave sign-in, sign-up, profile, security, activity, not-found, and their styles unchanged unless the request asks for them. Leave `app/hermes-gallery/` alone too: it is a preview-only page for reviewing design styles, and published apps do not serve it. They already work and pass the integration suite.
 
 ## Local setup
 
