@@ -102,7 +102,7 @@ npm run test:integration
 - Keep `GET /api/healthz` as process liveness only. It does not prove database readiness.
 - Sign-in and sign-up have no rate limit in the app. Add one at the trusted edge before public launch.
 - Keep embedding support. Do not add `X-Frame-Options: DENY` or a `frame-ancestors` rule that blocks the Hermes preview.
-- Do not load fonts or images from other sites. The theme fonts (Inter, Geist, DM Sans, Space Grotesk, Montserrat, Lora, Playfair Display, JetBrains Mono, Geist Mono) are bundled `@fontsource-variable` packages declared in `app/fonts.ts`. A page downloads only the fonts its theme uses.
+- Do not load fonts or images from other sites. The theme fonts (Inter, Geist, DM Sans, Space Grotesk, Montserrat, Lora, Playfair Display, JetBrains Mono, Geist Mono) are bundled (Inter as the `@fontsource-variable/inter` package, the rest as files in `fonts/`) and declared in `app/fonts.ts`. Do not add font packages: the package lock must stay the approved one. A page downloads only the fonts its theme uses.
 - In `npm run dev` the layout also loads `public/hermes-live-theme.js`, which lets the Hermes Design panel show theme changes in the preview at once. A release build never loads or serves it.
 
 `start.mjs` applies migrations and creates the session key before it starts the server, so its database identity needs schema-write rights. Rotating the session key is not supported.
