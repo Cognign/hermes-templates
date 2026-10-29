@@ -1,0 +1,59 @@
+/*
+ * Accessibility fixes that apply on top of every design style. shadcn's style
+ * files are kept byte for byte, so the places where they miss WCAG 2.2 AA
+ * (found by tools/style-check) are fixed here instead. `html[class*="style-"]`
+ * outranks a style file's own `.style-<id> .cn-*` rules.
+ */
+
+/* Radix makes a tab panel focusable; shadcn removes its outline. */
+html[class*="style-"] .cn-tabs-content:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/*
+ * An invalid control already wears its red ring, so focus must add something
+ * else. Its edge uses the full --destructive colour, which reaches 3:1 where
+ * shadcn's 50% dark variant does not.
+ */
+html[class*="style-"] [aria-invalid="true"] {
+  border-color: var(--destructive) !important;
+}
+
+html[class*="style-"] [aria-invalid="true"]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Typed text stays at full contrast inside an invalid field, which colours its children red. */
+html[class*="style-"] :is(.cn-input, .cn-textarea) {
+  color: var(--foreground);
+}
+
+/* shadcn's focus edge for a destructive button is 40% red, too faint to see. */
+html[class*="style-"] .cn-button-variant-destructive:focus-visible {
+  border-color: var(--destructive);
+}
+
+/* In dark mode a 20% red tint on a raised surface pushes the red text under 4.5:1. The other styles use solid red. */
+html:is(.style-vega, .style-nova, .style-maia, .style-lyra, .style-mira, .style-luma, .style-sera, .style-rhea, .style-minimal).dark :is(.cn-button-variant-destructive, .cn-badge-variant-destructive):not(:hover) {
+  background-color: color-mix(in oklch, var(--destructive) 12%, transparent);
+}
+
+/* The hover tint (20% light, 30% dark) is also too strong for the red text; a lighter one stays above 4.5:1. */
+html:is(.style-vega, .style-nova, .style-maia, .style-lyra, .style-mira, .style-luma, .style-sera, .style-rhea, .style-minimal) :is(.cn-button-variant-destructive, a.cn-badge-variant-destructive):hover {
+  background-color: color-mix(in oklch, var(--destructive) 14%, transparent);
+}
+
+html:is(.style-vega, .style-nova, .style-maia, .style-lyra, .style-mira, .style-luma, .style-sera, .style-rhea, .style-minimal).dark :is(.cn-button-variant-destructive, a.cn-badge-variant-destructive):hover {
+  background-color: color-mix(in oklch, var(--destructive) 18%, transparent);
+}
+
+/* Luma and Rhea draw text fields with a tint and no edge, and the tint dims the placeholder. */
+html:is(.style-luma, .style-rhea) :is(.cn-input, .cn-textarea, .cn-select-trigger):not([aria-invalid="true"], :focus-visible) {
+  border-color: var(--input);
+}
+
+html:is(.style-luma, .style-rhea) :is(.cn-input, .cn-textarea)::placeholder {
+  color: color-mix(in oklch, var(--muted-foreground), var(--foreground) 30%);
+}

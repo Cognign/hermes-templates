@@ -1,0 +1,19 @@
+/*
+ * Every design style except Vega, which app/globals.css already loads. Each file
+ * is scoped by its .style-<id> class, so only the class on <html> takes effect.
+ */
+@reference "../globals.css";
+@import "../../styles/style-nova.css";
+@import "../../styles/style-maia.css";
+@import "../../styles/style-lyra.css";
+@import "../../styles/style-mira.css";
+@import "../../styles/style-luma.css";
+@import "../../styles/style-sera.css";
+@import "../../styles/style-rhea.css";
+@import "../../styles/style-minimal.css";
+@import "../../styles/style-brutalist.css";
+@import "../../styles/style-bold.css";
+@import "../../styles/style-neumorphic.css";
+@import "../../styles/style-glass.css";
+/* Belongs in app/globals.css next to the style import once the theme work lands there. */
+@import "../../styles/accessible.css";

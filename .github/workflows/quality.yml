@@ -151,3 +151,45 @@ jobs:
       - run: npm run build
       - name: Integration suite on PostgreSQL 17
         run: npm run test:integration
+      - name: The style gallery is not served when APP_ENV=production
+        run: |
+          APP_ENV=production PORT=3001 node .next/standalone/start.mjs > "$RUNNER_TEMP/production.log" 2>&1 &
+          for _ in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3001/api/healthz && break; sleep 1; done
+          code="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/hermes-gallery)"
+          [ "$code" = 404 ] || { echo "/hermes-gallery returned $code"; cat "$RUNNER_TEMP/production.log"; exit 1; }
+
+  nextjs-fullstack-styles:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.21.0
+          cache: npm
+          cache-dependency-path: |
+            nextjs-fullstack/package-lock.json
+            tools/style-check/package-lock.json
+      - name: Build the starter
+        working-directory: nextjs-fullstack
+        run: |
+          npm ci
+          npm run build
+      - name: Install the style check and Chromium
+        working-directory: tools/style-check
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Contrast and keyboard focus in every style
+        run: |
+          (cd nextjs-fullstack && DATA_DIR="$RUNNER_TEMP/data" PORT=3000 node .next/standalone/start.mjs > "$RUNNER_TEMP/server.log" 2>&1 &)
+          for _ in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/api/healthz && break; sleep 1; done
+          cd tools/style-check
+          BASE_URL=http://localhost:3000 node check.mjs
+      - name: Server log
+        if: failure()
+        run: cat "$RUNNER_TEMP/server.log"
