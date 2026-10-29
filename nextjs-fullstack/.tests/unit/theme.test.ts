@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { htmlClass, readTheme } from "../../lib/theme";
@@ -55,12 +55,6 @@ test("the default theme keeps the starter's original look", () => {
   assert.equal(theme.dark.border, "oklch(1 0 0 / 12%)");
   assert.equal(Object.keys(theme.light).length, 32);
   assert.deepEqual(Object.keys(theme.dark), Object.keys(theme.light));
-});
-
-test("next dev loads every style file in styles/", () => {
-  const styles = readdirSync(path.join(root, "styles")).filter((file) => /^style-[a-z]+\.css$/.test(file));
-  const imported = [...read("app/preview-styles.css").matchAll(/@import "\.\.\/styles\/(style-[a-z]+\.css)";/g)].map((m) => m[1]);
-  assert.deepEqual(imported.sort(), styles.sort());
 });
 
 test("every bundled font of the theme contract has a --font-<id> variable", () => {

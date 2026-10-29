@@ -7,10 +7,9 @@ import themeFile from "../hermes-theme.json";
 
 const theme = readTheme(themeFile);
 
-// Hermes previews run `next dev`. A published app is a release build, which leaves out the live
-// theme script and every style but the theme's own (the build drops this dead branch).
+// Hermes previews run `next dev`. A published app is a release build and never gets the live
+// theme script.
 const livePreview = process.env.NODE_ENV === "development" && process.env.APP_ENV !== "production";
-if (process.env.NODE_ENV === "development") await import("./preview-styles");
 
 export const metadata: Metadata = {
   title: "Hermes Next.js Starter",

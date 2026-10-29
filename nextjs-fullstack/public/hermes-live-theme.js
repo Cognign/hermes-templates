@@ -1,6 +1,9 @@
 // Hermes live theme preview. While a person edits the look in Hermes's Design panel, Hermes
 // posts the new theme variables to this preview frame, and this file applies them at once.
 // Nothing is saved here: saving writes hermes-theme.json and the theme CSS as a new version.
+// The design style is checked but not switched here: the preview loads only the saved style's
+// CSS, because loading all of them made the first preview more than a second slower. A style
+// change shows once it is saved.
 // The same file ships in every Hermes starter. Its <script> tag says how the app turns dark:
 // data-dark="class" (a `.dark` class on <html>) or data-dark="media" (the system setting).
 (function () {
@@ -70,9 +73,6 @@
     // Last in <head>, so it wins over the theme CSS that loaded before it.
     document.head.appendChild(element);
 
-    var root = document.documentElement;
-    root.className = root.className.replace(/(^|\s)style-[a-z]+(?=\s|$)/g, "");
-    root.classList.add("style-" + data.style);
     if (darkRule === "class") {
       if (currentMode === null) system.addEventListener("change", applyMode);
       currentMode = data.mode;
