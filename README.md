@@ -31,7 +31,7 @@ Run these from the template's folder. CI (`.github/workflows/quality.yml`) runs 
 | Template | Commands |
 | --- | --- |
 | all | `scripts/check-template.sh <folder>` from the repository root |
-| `static-site` | none beyond the file check |
+| `static-site` | `node scripts/check-static-theme.mjs` from the repository root (its `theme.css` matches `hermes-theme.json`, and both starters ship the same `hermes-live-theme.js`) |
 | `fastapi-crud` | `uv sync --frozen`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright`, `uv run pytest` (uv 0.12.8, Python 3.13). Tests run on SQLite. Set `TEST_DATABASE_URL` to a PostgreSQL 17 database to run the PostgreSQL test too. |
 | `nextjs-fullstack` | `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run test:integration` (Node 24.21.0). The integration suite runs on PGlite by default. Set `DATABASE_URL` to run it on PostgreSQL 17. |
 | `nextjs-fullstack` design styles | `tools/style-check`: contrast and keyboard-focus check of every style on the release build. See [`themes/README.md`](themes/README.md). |

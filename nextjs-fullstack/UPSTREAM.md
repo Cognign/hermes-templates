@@ -17,7 +17,7 @@ Changes made for Hermes on top of Foundry's copy:
 - The database is an embedded PGlite database when `DATABASE_URL` is unset and `APP_ENV` is not `production`, and PostgreSQL otherwise. The unit plan worded this more narrowly (PGlite for previews only); this is what is built, and with `APP_ENV=production` and no `DATABASE_URL` the app refuses to start. The same committed migrations run on both.
 - `SESSION_SIGNING_KEY` is gone. A random key is created on first start and kept in the `app_settings` table (migration `0001`).
 - Sessions work inside a cross-site iframe (partitioned `SameSite=None` cookie for framed requests).
-- `output: 'standalone'`, and `npm run build` turns `.next/standalone` into a release folder that starts with plain Node (`start.mjs`, built from `scripts/serve.ts` with esbuild). No telemetry, fonts from the bundled `@fontsource-variable/inter` package.
+- `output: 'standalone'`, and `npm run build` turns `.next/standalone` into a release folder that starts with plain Node (`start.mjs`, built from `scripts/serve.ts` with esbuild). No telemetry, fonts from bundled `@fontsource-variable` packages.
 - Added packages: `@electric-sql/pglite`, `recharts`, `date-fns`, `react-hook-form`, `@hookform/resolvers`, `@tanstack/react-table`, `sonner`.
 - `next` and `eslint-config-next` moved from 16.4.0 to 16.4.2 for published security fixes.
 - The UI is rebuilt from shadcn/ui. No change to routes, form fields, redirects or messages.
@@ -36,6 +36,17 @@ Changes made for Hermes on top of Foundry's copy:
 - Also copied from the same commit, with the same import rewrites: `textarea`, `select`, `checkbox`, `switch`, `radio-group`, `dialog`, `alert-dialog`, `tabs`, `dropdown-menu`, `tooltip`, `popover`, `sheet` and `sonner`. Further edits: the `IconPlaceholder` helper (which only exists inside shadcn's own site) is replaced by the lucide icon it names; `sonner.tsx` uses `theme="system"` instead of `next-themes`, and its loading icon does not spin; `skeleton.tsx` has no pulse animation. No new packages.
 - `app/globals.css` sets the theme variables with tweakcn's names (<https://github.com/jnsahaj/tweakcn>, `types/theme.ts`, Apache-2.0), including `--destructive-foreground`. The shadow scale follows the logic of `utils/shadows.ts` from tweakcn at commit `a3b47b37cba97dd637de517aab52c45ec0f83456` (Apache-2.0, <https://github.com/jnsahaj/tweakcn/blob/a3b47b37cba97dd637de517aab52c45ec0f83456/utils/shadows.ts>): the same multipliers and second layers, written as CSS (`color-mix`, `calc`) instead of TypeScript. tweakcn's Apache-2.0 licence applies to that adapted logic. Its full text ships as `LICENSE-APACHE-2.0`, and the comment above the shadow scale in `app/globals.css` says what changed.
 - Outline buttons use `--input` for their border in light mode too (a small rule at the end of `app/globals.css`), because Vega's `--border` is a 1.3:1 divider colour. Neutral base colour. `--input` and `--ring` are darker than shadcn's neutral defaults so input borders and focus rings reach 3:1 contrast.
+- `styles/style-lyra.css` is copied unchanged from `apps/v4/registry/styles/style-lyra.css` at the same commit.
+
+## Themes (Hermes's own, not upstream)
+
+- The theme values moved from `app/globals.css` into `app/theme.css`, generated from `hermes-theme.json` by Hermes's renderer in the format of Hermes's theme contract (version 1). The default theme has exactly the earlier values. `app/globals.css` keeps the derived tokens and the shadow scale.
+- `app/layout.tsx` takes the style class and the mode from `hermes-theme.json`. `light` and `dark` are set on the server with no script; `system` keeps the script that follows the device.
+- `public/hermes-live-theme.js` (also in `static-site/`) applies theme variables that the Hermes Design panel posts to the preview frame. It loads only under `next dev`, and `scripts/package-release.mjs` leaves it out of the release folder.
+- Added font packages, all `@fontsource-variable` 5.3.0 (OFL-1.1, published 2026-07-19): `geist`, `dm-sans`, `space-grotesk`, `montserrat`, `lora`, `playfair-display`, `jetbrains-mono`, `geist-mono`. Every entry in `package-lock.json` was published on or before 2026-10-22.
+
+## Updating shadcn/ui
+
 - Updating means: re-copy the files from a newer commit, and rerun the lock date check and the visual check.
 
 ## The other design styles
