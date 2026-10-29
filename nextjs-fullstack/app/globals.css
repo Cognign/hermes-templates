@@ -3,6 +3,8 @@
 @import "../styles/shadcn-tailwind.css";
 /* The theme values and the chosen style come from hermes-theme.json, rendered into theme.css. */
 @import "./theme.css";
+/* WCAG fixes on top of whichever style the theme picks. */
+@import "../styles/accessible.css";
 
 /* app/layout.tsx puts `.dark` on <html> before first paint (see its theme script). */
 @custom-variant dark (&:is(.dark *));
